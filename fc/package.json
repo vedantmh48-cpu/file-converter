@@ -1,0 +1,55 @@
+{
+  "name": "fc",
+  "version": "0.1.0",
+  "private": true,
+  "homepage": "https://vedantmh48-cpu.github.io/file-converter",
+  "dependencies": {
+    "@headlessui/react": "^2.2.10",
+    "@tailwindcss/forms": "^0.5.11",
+    "@testing-library/dom": "^10.4.1",
+    "@testing-library/jest-dom": "^6.9.1",
+    "@testing-library/react": "^16.3.2",
+    "@testing-library/user-event": "^13.5.0",
+    "autoprefixer": "^10.5.4",
+    "framer-motion": "^12.42.2",
+    "jspdf": "^4.2.1",
+    "jszip": "^3.10.1",
+    "lucide-react": "^1.26.0",
+    "mammoth": "^1.12.0",
+    "pdf-lib": "^1.17.1",
+    "pdfjs-dist": "^6.1.200",
+    "postcss": "^8.5.23",
+    "react": "^19.2.8",
+    "react-dom": "^19.2.8",
+    "react-scripts": "5.0.1",
+    "tailwindcss": "^3.4.19",
+    "web-vitals": "^2.1.4",
+    "xlsx": "^0.18.5"
+  },
+  "scripts": {
+    "start": "react-scripts start",
+    "build": "react-scripts build",
+    "test": "react-scripts test",
+    "eject": "react-scripts eject",
+    "predeploy": "npm run build",
+    "deploy": "gh-pages -d build"
+  },
+  "eslintConfig": {
+    "extends": [
+      "react-app",
+      "react-app/jest"
+    ]
+  },
+  "browserslist": {
+    "production": [
+      ">0.2%",
+      "not dead",
+      "not op_mini all"
+    ],
+    "development": [
+      "last 1 chrome version",
+      "last 1 firefox version",
+      "last 1 safari version"
+    ]
+  }
+}

@@ -1,0 +1,143 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap');
+
+@layer base {
+  * {
+    @apply border-surface-border;
+  }
+  body {
+    @apply bg-white text-gray-900 antialiased;
+    font-family: 'Inter', 'Plus Jakarta Sans', system-ui, sans-serif;
+  }
+}
+
+@layer components {
+  .glass-banner {
+    @apply backdrop-blur-xl bg-white/80 border-t border-surface-border shadow-lg;
+  }
+  
+  .dropzone {
+    @apply border-2 border-dashed border-gray-300 rounded-2xl p-12 text-center 
+           transition-all duration-300 ease-out cursor-pointer
+           hover:border-brand-400 hover:bg-brand-50/30;
+  }
+  
+  .dropzone-active {
+    @apply border-brand-500 bg-brand-50/50 scale-[1.01];
+  }
+
+  .btn-primary {
+    @apply inline-flex items-center justify-center px-6 py-3 rounded-xl 
+           bg-brand-600 text-white font-semibold text-sm
+           hover:bg-brand-700 active:bg-brand-800 
+           transition-all duration-200 shadow-sm hover:shadow-md
+           focus:outline-none focus:ring-2 focus:ring-brand-500 focus:ring-offset-2
+           disabled:opacity-50 disabled:cursor-not-allowed;
+  }
+
+  .btn-secondary {
+    @apply inline-flex items-center justify-center px-6 py-3 rounded-xl
+           border border-surface-border bg-white text-gray-700 font-semibold text-sm
+           hover:bg-gray-50 hover:border-gray-300
+           transition-all duration-200 shadow-sm
+           focus:outline-none focus:ring-2 focus:ring-brand-500 focus:ring-offset-2;
+  }
+
+  .btn-ghost {
+    @apply inline-flex items-center justify-center px-4 py-2 rounded-lg
+           text-gray-600 font-medium text-sm
+           hover:bg-gray-100 hover:text-gray-900
+           transition-all duration-200;
+  }
+
+  .card {
+    @apply bg-white rounded-2xl border border-surface-border shadow-sm
+           hover:shadow-md transition-shadow duration-300;
+  }
+
+  .card-floating {
+    @apply bg-white rounded-2xl shadow-lg border border-surface-border;
+  }
+
+  .input-field {
+    @apply w-full px-4 py-3 rounded-xl border border-surface-border
+           bg-white text-gray-900 text-sm
+           placeholder-gray-400
+           focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-brand-500
+           transition-all duration-200;
+  }
+
+  .badge {
+    @apply inline-flex items-center px-3 py-1 rounded-full text-xs font-medium;
+  }
+
+  .badge-success {
+    @apply badge bg-emerald-50 text-emerald-700 border border-emerald-200;
+  }
+
+  .badge-info {
+    @apply badge bg-blue-50 text-blue-700 border border-blue-200;
+  }
+
+  .badge-warning {
+    @apply badge bg-amber-50 text-amber-700 border border-amber-200;
+  }
+}
+
+@layer utilities {
+  .text-balance {
+    text-wrap: balance;
+  }
+}
+
+/* Custom scrollbar */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  @apply bg-transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  @apply bg-gray-300 rounded-full hover:bg-gray-400;
+}
+
+/* Progress bar animation */
+.progress-bar {
+  @apply h-2 rounded-full bg-gray-100 overflow-hidden;
+}
+
+.progress-bar-fill {
+  @apply h-full rounded-full bg-gradient-to-r from-brand-500 to-brand-400 transition-all duration-500 ease-out;
+}
+
+/* File item styles */
+.file-item {
+  @apply flex items-center gap-4 p-4 rounded-xl border border-surface-border
+         bg-white hover:bg-gray-50 transition-all duration-200;
+}
+
+.file-item-enter {
+  animation: slideUp 0.3s ease-out;
+}
+
+/* Shooting star / sparkle animation for hero */
+@keyframes float {
+  0%, 100% { transform: translateY(0px) rotate(0deg); }
+  33% { transform: translateY(-10px) rotate(1deg); }
+  66% { transform: translateY(5px) rotate(-1deg); }
+}
+
+.float-animation {
+  animation: float 6s ease-in-out infinite;
+}
+
+.float-animation-delayed {
+  animation: float 8s ease-in-out infinite;
+  animation-delay: 2s;
+}
