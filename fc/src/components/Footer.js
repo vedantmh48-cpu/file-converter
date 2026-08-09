@@ -1,15 +1,17 @@
 import React from 'react';
 import { 
   FileBox, Globe, Shield, 
-  ArrowUpRight, Heart
+  ArrowUpRight, Mail
 } from 'lucide-react';
 
 const popularTools = [
-  { name: 'Image to PDF', action: 'image-to-pdf' },
-  { name: 'JPG to PNG', action: 'jpg-to-png' },
-  { name: 'PNG to WEBP', action: 'png-to-webp' },
-  { name: 'PDF to Image', action: 'pdf-to-image' },
-  { name: 'WebP Converter', action: 'webp-converter' },
+  { name: 'Image to PDF', action: 'converter' },
+  { name: 'JPG to PNG', action: 'converter' },
+  { name: 'PNG to WEBP', action: 'converter' },
+  { name: 'PDF to Image', action: 'converter' },
+  { name: 'WebP Converter', action: 'converter' },
+  { name: 'File Compressor', action: 'extra-tools' },
+  { name: 'File to Link', action: 'extra-tools' },
 ];
 
 const company = [
@@ -28,8 +30,12 @@ const legal = [
 
 export default function Footer({ onLegalClick }) {
   const scrollToSection = (id) => {
-    if (id === 'converter' || id === 'how-it-works' || id === 'features' || id === 'security') {
+    if (id === 'converter' || id === 'how-it-works' || id === 'features' || id === 'security' || id === 'extra-tools') {
       document.getElementById(id)?.scrollIntoView({ behavior: 'smooth' });
+    } else if (id === 'about') {
+      document.getElementById('features')?.scrollIntoView({ behavior: 'smooth' });
+    } else if (id === 'status') {
+      document.getElementById('security')?.scrollIntoView({ behavior: 'smooth' });
     } else if (['terms', 'privacy', 'cookies', 'gdpr'].includes(id)) {
       if (onLegalClick) onLegalClick(id);
     }
@@ -58,12 +64,31 @@ export default function Footer({ onLegalClick }) {
               
               {/* Social Links */}
               <div className="flex items-center gap-3 mt-6">
-                <button className="w-9 h-9 rounded-lg bg-gray-800 flex items-center justify-center hover:bg-brand-600 transition-colors group">
+                <a 
+                  href="https://github.com/vedantmh48-cpu/file-converter" 
+                  target="_blank" 
+                  rel="noopener noreferrer"
+                  className="w-9 h-9 rounded-lg bg-gray-800 flex items-center justify-center hover:bg-brand-600 transition-colors group"
+                  aria-label="GitHub"
+                >
                   <Globe className="w-4.5 h-4.5 text-gray-400 group-hover:text-white" />
-                </button>
-                <button className="w-9 h-9 rounded-lg bg-gray-800 flex items-center justify-center hover:bg-brand-600 transition-colors group">
+                </a>
+                <a 
+                  href="https://github.com/vedantmh48-cpu/file-converter" 
+                  target="_blank" 
+                  rel="noopener noreferrer"
+                  className="w-9 h-9 rounded-lg bg-gray-800 flex items-center justify-center hover:bg-brand-600 transition-colors group"
+                  aria-label="Website"
+                >
                   <Globe className="w-4.5 h-4.5 text-gray-400 group-hover:text-white" />
-                </button>
+                </a>
+                <a 
+                  href="mailto:vedantmh48@gmail.com" 
+                  className="w-9 h-9 rounded-lg bg-gray-800 flex items-center justify-center hover:bg-brand-600 transition-colors group"
+                  aria-label="Email"
+                >
+                  <Mail className="w-4.5 h-4.5 text-gray-400 group-hover:text-white" />
+                </a>
               </div>
 
               {/* Security Badge */}
@@ -82,7 +107,7 @@ export default function Footer({ onLegalClick }) {
                 {popularTools.map((tool) => (
                   <li key={tool.name}>
                     <button
-                      onClick={() => scrollToSection('converter')}
+                      onClick={() => scrollToSection(tool.action)}
                       className="text-sm text-gray-400 hover:text-white transition-colors flex items-center gap-1 group"
                     >
                       {tool.name}
@@ -142,7 +167,7 @@ export default function Footer({ onLegalClick }) {
               &copy; {new Date().getFullYear()} FileFlex. All rights reserved.
             </p>
             <p className="text-sm text-gray-500 flex items-center gap-1">
-              Made with <Heart className="w-3.5 h-3.5 text-red-500 fill-red-500" /> for privacy
+              Created by Vedant MMhatre for privacy
             </p>
           </div>
         </div>

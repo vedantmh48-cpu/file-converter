@@ -3,7 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { 
   FileBox, ChevronDown, Menu, X, 
   Image, FileImage, FileType, 
-  ArrowRight, FileUp
+  ArrowRight, FileUp, FileArchive, Link2
 } from 'lucide-react';
 
 const tools = [
@@ -12,6 +12,8 @@ const tools = [
   { name: 'Convert to PNG', icon: FileImage, desc: 'Convert any image to PNG' },
   { name: 'Compress PDF', icon: FileType, desc: 'Reduce PDF file size' },
   { name: 'File Extender', icon: FileUp, desc: 'Convert between formats' },
+  { name: 'File Compressor', icon: FileArchive, desc: 'Compress images, PDFs & more' },
+  { name: 'File to Link', icon: Link2, desc: 'Generate shareable file links' },
 ];
 
 export default function Navbar() {
@@ -27,6 +29,15 @@ export default function Navbar() {
 
   const scrollToConverter = () => {
     document.getElementById('converter')?.scrollIntoView({ behavior: 'smooth' });
+  };
+
+  const scrollToTool = (toolName) => {
+    if (toolName === 'File Compressor' || toolName === 'File to Link') {
+      document.getElementById('extra-tools')?.scrollIntoView({ behavior: 'smooth' });
+    } else {
+      scrollToConverter();
+    }
+    setToolsOpen(false);
   };
 
   const scrollToSection = (id) => {
@@ -73,7 +84,7 @@ export default function Navbar() {
                     {tools.map((tool) => (
                       <button
                         key={tool.name}
-                        onClick={() => { scrollToConverter(); setToolsOpen(false); }}
+                        onClick={() => scrollToTool(tool.name)}
                         className="flex items-center gap-3 w-full p-3 rounded-xl hover:bg-gray-50 transition-colors text-left group"
                       >
                         <div className="w-9 h-9 rounded-lg bg-brand-50 flex items-center justify-center group-hover:bg-brand-100 transition-colors">
@@ -125,7 +136,7 @@ export default function Navbar() {
               {tools.map((tool) => (
                 <button
                   key={tool.name}
-                  onClick={() => { scrollToConverter(); setMobileOpen(false); }}
+                  onClick={() => { scrollToTool(tool.name); setMobileOpen(false); }}
                   className="flex items-center gap-3 w-full p-3 rounded-xl hover:bg-gray-50 transition-colors"
                 >
                   <tool.icon className="w-4.5 h-4.5 text-brand-600" />

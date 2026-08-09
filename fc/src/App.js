@@ -5,6 +5,7 @@ import Converter from './components/Converter';
 import HowItWorks from './components/HowItWorks';
 import Features from './components/Features';
 import Security from './components/Security';
+import ExtraTools from './components/ExtraTools';
 import Footer from './components/Footer';
 import CookieConsent from './components/CookieConsent';
 import LegalModal from './components/LegalModal';
@@ -30,6 +31,7 @@ function App() {
         <HowItWorks />
         <Features />
         <Security />
+        <ExtraTools />
       </main>
 
       <Footer onLegalClick={openLegalModal} />

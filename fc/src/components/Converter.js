@@ -3,9 +3,14 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { 
   Upload, File, X, Download, CheckCircle2,
   ArrowRight, Settings2, Merge, 
-  Split, FileDown, Loader2, Maximize2, Minimize2
+  Split, FileDown, Loader2, Maximize2, Minimize2,
+  FileText, Table, Presentation, Pencil, Check, ExternalLink
 } from 'lucide-react';
-import { formatFileSize, getFileExtension, SUPPORTED_IMAGE_FORMATS, convertMultipleFiles, downloadFile, downloadAsZip } from '../utils/conversionUtils';
+import { 
+  formatFileSize, getFileExtension, getBaseName, 
+  SUPPORTED_IMAGE_FORMATS, convertMultipleFiles, 
+  downloadFile, downloadAsZip, openGoogleCreate, renameFile 
+} from '../utils/conversionUtils';
 
 const FROM_FORMATS = [
   { value: 'jpg', label: 'JPG', group: 'image' },
@@ -38,7 +43,14 @@ const TO_FORMATS = [
   { value: 'txt', label: 'TXT', group: 'document' },
   { value: 'docx', label: 'DOCX', group: 'document' },
   { value: 'xlsx', label: 'XLSX', group: 'document' },
+  { value: 'pptx', label: 'PPTX', group: 'document' },
   { value: 'csv', label: 'CSV', group: 'document' },
+];
+
+const GOOGLE_CREATE_OPTIONS = [
+  { type: 'docs', label: 'Google Docs', icon: FileText, description: 'Create a new document' },
+  { type: 'sheets', label: 'Google Sheets', icon: Table, description: 'Create a new spreadsheet' },
+  { type: 'slides', label: 'Google Slides', icon: Presentation, description: 'Create a new presentation' },
 ];
 
 export default function Converter() {
@@ -51,6 +63,8 @@ export default function Converter() {
   const [dragActive, setDragActive] = useState(false);
   const [showOptions, setShowOptions] = useState(false);
   const [mergeMode, setMergeMode] = useState('single');
+  const [renamingIndex, setRenamingIndex] = useState(null);
+  const [renameValue, setRenameValue] = useState('');
   const inputRef = useRef(null);
   const dropRef = useRef(null);
 
@@ -124,16 +138,33 @@ export default function Converter() {
       const totalFiles = files.length;
       const results = [];
 
-      for (let i = 0; i < files.length; i++) {
-        const fileData = files[i];
+      // If converting multiple images to PDF with merge mode, pass all files at once
+      if (
+        toFormat === 'pdf' && 
+        SUPPORTED_IMAGE_FORMATS.includes(fromFormat) && 
+        mergeMode === 'single' && 
+        files.length > 1
+      ) {
         const result = await convertMultipleFiles(
-          [fileData.file], 
-          fileData.extension || fromFormat, 
-          toFormat, 
+          files.map(f => f.file),
+          fromFormat,
+          toFormat,
           { mergeMode }
         );
         results.push(...result);
-        setProgress(Math.round(((i + 1) / totalFiles) * 100));
+        setProgress(100);
+      } else {
+        for (let i = 0; i < files.length; i++) {
+          const fileData = files[i];
+          const result = await convertMultipleFiles(
+            [fileData.file], 
+            fileData.extension || fromFormat, 
+            toFormat, 
+            { mergeMode }
+          );
+          results.push(...result);
+          setProgress(Math.round(((i + 1) / totalFiles) * 100));
+        }
       }
 
       setConvertedResults(results);
@@ -152,6 +183,25 @@ export default function Converter() {
     } else if (convertedResults.length > 1) {
       downloadAsZip(convertedResults);
     }
+  };
+
+  const startRename = (index) => {
+    setRenamingIndex(index);
+    setRenameValue(getBaseName(convertedResults[index].fileName));
+  };
+
+  const handleRename = (index) => {
+    if (renameValue.trim()) {
+      const updated = [...convertedResults];
+      updated[index] = renameFile(updated[index], renameValue.trim());
+      setConvertedResults(updated);
+    }
+    setRenamingIndex(null);
+    setRenameValue('');
+  };
+
+  const handleGoogleCreate = (type) => {
+    openGoogleCreate(type);
   };
 
   return (
@@ -174,6 +224,43 @@ export default function Converter() {
             </p>
           </motion.div>
         </div>
+
+        {/* Google Create Section */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true }}
+          transition={{ duration: 0.5, delay: 0.05 }}
+          className="mb-8"
+        >
+          <div className="text-center mb-4">
+            <h3 className="text-lg font-semibold text-gray-800">Create New Documents</h3>
+            <p className="text-sm text-gray-500 mt-1">Open Google Docs, Sheets, or Slides to create new files</p>
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            {GOOGLE_CREATE_OPTIONS.map((option) => {
+              const Icon = option.icon;
+              return (
+                <button
+                  key={option.type}
+                  onClick={() => handleGoogleCreate(option.type)}
+                  className="group flex flex-col items-center gap-3 p-5 rounded-2xl border border-surface-border bg-white hover:border-brand-400 hover:bg-brand-50/30 hover:shadow-md transition-all duration-300"
+                >
+                  <div className="w-12 h-12 rounded-xl bg-brand-50 flex items-center justify-center group-hover:bg-brand-100 group-hover:scale-110 transition-all duration-300">
+                    <Icon className="w-6 h-6 text-brand-600" />
+                  </div>
+                  <div className="text-center">
+                    <p className="text-sm font-semibold text-gray-800">{option.label}</p>
+                    <p className="text-xs text-gray-500 mt-0.5">{option.description}</p>
+                  </div>
+                  <span className="inline-flex items-center gap-1 text-xs font-medium text-brand-600 opacity-0 group-hover:opacity-100 transition-opacity">
+                    Open <ExternalLink className="w-3 h-3" />
+                  </span>
+                </button>
+              );
+            })}
+          </div>
+        </motion.div>
 
         {/* Converter Card */}
         <motion.div
@@ -278,6 +365,13 @@ export default function Converter() {
                           Separate PDFs
                         </button>
                       </div>
+                      {SUPPORTED_IMAGE_FORMATS.includes(fromFormat) && files.length > 1 && (
+                        <p className="text-xs text-gray-500 mt-2">
+                          {mergeMode === 'single' 
+                            ? `All ${files.length} images will be merged into one PDF` 
+                            : `Each image will be converted to its own PDF`}
+                        </p>
+                      )}
                     </div>
                   )}
                 </div>
@@ -413,17 +507,52 @@ export default function Converter() {
               <div className="space-y-2 max-h-40 overflow-y-auto">
                 {convertedResults.map((result, i) => (
                   <div key={i} className="flex items-center justify-between bg-white rounded-lg p-3 border border-emerald-100">
-                    <div className="flex items-center gap-2 min-w-0">
+                    <div className="flex items-center gap-2 min-w-0 flex-1">
                       <FileDown className="w-4 h-4 text-emerald-500 flex-shrink-0" />
-                      <span className="text-sm text-gray-700 truncate">{result.fileName}</span>
-                      <span className="text-xs text-gray-400">({formatFileSize(result.size)})</span>
+                      {renamingIndex === i ? (
+                        <div className="flex items-center gap-2 flex-1 min-w-0">
+                          <input
+                            type="text"
+                            value={renameValue}
+                            onChange={(e) => setRenameValue(e.target.value)}
+                            onKeyDown={(e) => {
+                              if (e.key === 'Enter') handleRename(i);
+                              if (e.key === 'Escape') { setRenamingIndex(null); setRenameValue(''); }
+                            }}
+                            className="input-field !py-1 !px-2 text-sm flex-1 min-w-0"
+                            autoFocus
+                          />
+                          <button
+                            onClick={() => handleRename(i)}
+                            className="p-1.5 rounded-lg bg-emerald-100 text-emerald-600 hover:bg-emerald-200 transition-colors flex-shrink-0"
+                          >
+                            <Check className="w-4 h-4" />
+                          </button>
+                        </div>
+                      ) : (
+                        <>
+                          <span className="text-sm text-gray-700 truncate">{result.fileName}</span>
+                          <span className="text-xs text-gray-400">({formatFileSize(result.size)})</span>
+                        </>
+                      )}
                     </div>
-                    <button
-                      onClick={() => downloadFile(result.blob, result.fileName)}
-                      className="btn-ghost text-brand-600 hover:text-brand-700 flex-shrink-0"
-                    >
-                      <Download className="w-4 h-4" />
-                    </button>
+                    <div className="flex items-center gap-1 flex-shrink-0">
+                      {renamingIndex !== i && (
+                        <button
+                          onClick={() => startRename(i)}
+                          className="p-1.5 rounded-lg hover:bg-gray-100 text-gray-400 hover:text-gray-600 transition-colors"
+                          title="Rename file"
+                        >
+                          <Pencil className="w-4 h-4" />
+                        </button>
+                      )}
+                      <button
+                        onClick={() => downloadFile(result.blob, result.fileName)}
+                        className="btn-ghost text-brand-600 hover:text-brand-700"
+                      >
+                        <Download className="w-4 h-4" />
+                      </button>
+                    </div>
                   </div>
                 ))}
               </div>

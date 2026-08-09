@@ -131,6 +131,50 @@ const legalContent = {
       <h3>7. Updates</h3>
       <p>We may update this Cookie Policy as needed. Changes will be reflected with an updated date.</p>
     `
+  },
+  gdpr: {
+    title: 'GDPR Compliance',
+    icon: Shield,
+    lastUpdated: 'July 25, 2026',
+    content: `
+      <h3>1. Overview</h3>
+      <p>FileFlex is committed to full compliance with the General Data Protection Regulation (GDPR) (EU) 2016/679. This policy outlines our compliance measures and your rights under the regulation.</p>
+
+      <h3>2. Data Controller</h3>
+      <p>As FileFlex processes no personal data on our servers, we act as a data processor with zero data collection. All file processing occurs entirely within your browser on your device.</p>
+
+      <h3>3. Legal Basis for Processing</h3>
+      <p>Since we do not collect, store, or process any personal data, we do not rely on any legal basis for data processing under GDPR Article 6. Our service is designed to be data-free by architecture.</p>
+
+      <h3>4. Your Rights Under GDPR</h3>
+      <p>Under the GDPR, you have the following rights:</p>
+      <ul>
+        <li><strong>Right of Access (Art. 15):</strong> Since we hold no data, there is nothing to access.</li>
+        <li><strong>Right to Rectification (Art. 16):</strong> No data is stored, so nothing requires correction.</li>
+        <li><strong>Right to Erasure (Art. 17):</strong> All data is automatically erased when you close your browser tab.</li>
+        <li><strong>Right to Restrict Processing (Art. 18):</strong> No processing occurs on our servers.</li>
+        <li><strong>Right to Data Portability (Art. 20):</strong> Your files remain on your device at all times.</li>
+        <li><strong>Right to Object (Art. 21):</strong> No profiling or automated decision-making occurs.</li>
+      </ul>
+
+      <h3>5. Data Minimization</h3>
+      <p>In accordance with GDPR Article 5(1)(c), we collect the minimum amount of data possible — which is zero. We do not require registration, email addresses, or any personal information.</p>
+
+      <h3>6. Storage Limitation</h3>
+      <p>In accordance with GDPR Article 5(1)(e), we store no personal data. The only local storage used is for your cookie preferences, which you can clear at any time through your browser settings.</p>
+
+      <h3>7. International Data Transfers</h3>
+      <p>Since no data is transferred to or from our servers, there are no international data transfers. Your files never leave your device.</p>
+
+      <h3>8. Data Breaches</h3>
+      <p>As we store no personal data, the risk of a data breach is effectively zero. There is no central database, no user accounts, and no server-side file storage that could be compromised.</p>
+
+      <h3>9. Children's Data</h3>
+      <p>Our service is safe for users of all ages as we collect no personal data from any user, including children under 16, in compliance with GDPR Article 8.</p>
+
+      <h3>10. Contact & Complaints</h3>
+      <p>If you have any questions about our GDPR compliance, please contact us through our GitHub repository. You also have the right to lodge a complaint with your local data protection authority.</p>
+    `
   }
 };
 
