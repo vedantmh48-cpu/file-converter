@@ -3,9 +3,15 @@
   "name": "FileFlex - Free File Converter",
   "icons": [
     {
-      "src": "fileflex-logo.svg",
-      "sizes": "any",
-      "type": "image/svg+xml",
+      "src": "logo.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "logo.png",
+      "sizes": "512x512",
+      "type": "image/png",
       "purpose": "any maskable"
     }
   ],
