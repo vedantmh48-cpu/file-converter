@@ -6,6 +6,7 @@ import {
   ArrowRight, FileUp, FileArchive, Link2
 } from 'lucide-react';
 import { useSettings } from '../context/SettingsContext';
+import logo from '../logo.png';
 
 const tools = [
   { name: 'Image to PDF', icon: Image, desc: 'Convert images to PDF' },
@@ -59,7 +60,7 @@ export default function Navbar({ active, onNavigate, onOpenSettings }) {
         <div className="flex items-center justify-between h-14 lg:h-[4.5rem]">
           {/* Logo */}
           <button onClick={() => onNavigate('home')} className="flex items-center gap-2.5 group">
-            <img src="/logo.png" alt="" className="w-9 h-9 rounded-xl object-contain group-hover:scale-105 transition-transform" />
+            <img src={logo} alt="FileFlex" className="w-9 h-9 rounded-xl object-contain group-hover:scale-105 transition-transform" />
             <span className="text-xl font-bold tracking-tight text-gray-900 dark:text-gray-100">
               File<span className="text-brand-600">Flex</span>
             </span>
