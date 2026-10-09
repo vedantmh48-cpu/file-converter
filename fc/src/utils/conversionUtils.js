@@ -2,6 +2,7 @@ import { jsPDF } from 'jspdf';
 import JSZip from 'jszip';
 
 export function formatFileSize(bytes) {
+  if (!Number.isFinite(bytes) || bytes < 0) return 'Unknown size';
   if (bytes === 0) return '0 Bytes';
   const k = 1024;
   const sizes = ['Bytes', 'KB', 'MB', 'GB'];
@@ -46,8 +47,8 @@ export const FORMAT_OPTIONS = {
 };
 
 export function detectConversionType(fromFormat, toFormat) {
-  const from = fromFormat.toLowerCase();
-  const to = toFormat.toLowerCase();
+  const from = String(fromFormat || '').toLowerCase();
+  const to = String(toFormat || '').toLowerCase();
 
   // Image conversions
   if (SUPPORTED_IMAGE_FORMATS.includes(from) && SUPPORTED_IMAGE_FORMATS.includes(to)) return 'image-to-image';
@@ -98,15 +99,11 @@ export function detectConversionType(fromFormat, toFormat) {
 
 function loadImage(file) {
   return new Promise((resolve, reject) => {
-    const reader = new FileReader();
-    reader.onload = (e) => {
-      const img = new Image();
-      img.onload = () => resolve({ img, dataUrl: e.target.result });
-      img.onerror = reject;
-      img.src = e.target.result;
-    };
-    reader.onerror = reject;
-    reader.readAsDataURL(file);
+    const url = URL.createObjectURL(file);
+    const img = new Image();
+    img.onload = () => { URL.revokeObjectURL(url); resolve({ img }); };
+    img.onerror = (error) => { URL.revokeObjectURL(url); reject(error); };
+    img.src = url;
   });
 }
 
@@ -423,6 +420,10 @@ export async function convertImageToImage(file, targetFormat) {
   const quality = (targetFormat === 'jpg' || targetFormat === 'jpeg') ? 0.92 : 1.0;
 
   const blob = await canvasToBlob(canvas, mimeType, quality);
+  if (!blob) throw new Error('The browser could not encode this image');
+  if (blob.type !== mimeType) {
+    throw new Error(`${targetFormat.toUpperCase()} export is not supported by this browser. Choose JPG, PNG, or WEBP.`);
+  }
   return {
     blob,
     fileName: `${getBaseName(file.name)}.${targetFormat}`,
@@ -902,76 +903,228 @@ export async function convertMultipleFiles(files, fromFormat, toFormat, options 
 
 // ============ File Compression ============
 
-export async function compressFile(file, quality = 0.7) {
-  const extension = getFileExtension(file.name);
-  
-  // Compress images
-  if (SUPPORTED_IMAGE_FORMATS.includes(extension)) {
-    const { img } = await loadImage(file);
-    const canvas = document.createElement('canvas');
-    canvas.width = img.naturalWidth;
-    canvas.height = img.naturalHeight;
-    const ctx = canvas.getContext('2d');
-    ctx.drawImage(img, 0, 0);
-    
-    const mimeType = extension === 'png' ? 'image/png' : 'image/jpeg';
-    const blob = await canvasToBlob(canvas, mimeType, quality);
+/**
+ * Wraps a compressed blob into the result shape used by the UI.
+ * IMPORTANT GUARD: if the compressed output is NOT smaller than the input
+ * (or was not produced), the original file is returned instead – so the
+ * compressor never increases a file's size.
+ */
+function buildCompressionResult(file, blob, fileName, message = null) {
+  if (!blob || blob.size >= file.size) {
+    const originalBlob = file.slice(0, file.size, file.type || 'application/octet-stream');
     return {
-      blob,
-      fileName: `${getBaseName(file.name)}_compressed.${extension === 'png' ? 'png' : 'jpg'}`,
-      size: blob.size,
+      blob: originalBlob,
+      fileName: file.name,
+      size: file.size,
       originalSize: file.size,
-      url: URL.createObjectURL(blob),
+      url: URL.createObjectURL(originalBlob),
+      message: message || 'Original kept — file was already optimally compressed',
     };
   }
-  
-  // Compress PDFs
-  if (extension === 'pdf') {
+  return {
+    blob,
+    fileName,
+    size: blob.size,
+    originalSize: file.size,
+    url: URL.createObjectURL(blob),
+    message: message || null,
+  };
+}
+
+/**
+ * Fast alpha check – draws a downscaled copy of the image on a tiny canvas.
+ * Prevents JPEG conversion from silently destroying transparency.
+ */
+function imageHasTransparency(img, width, height) {
+  const scale = Math.min(1, 96 / Math.max(width, height));
+  const w = Math.max(1, Math.round(width * scale));
+  const h = Math.max(1, Math.round(height * scale));
+  const canvas = document.createElement('canvas');
+  canvas.width = w;
+  canvas.height = h;
+  const ctx = canvas.getContext('2d', { willReadFrequently: true });
+  if (!ctx) return true;
+  ctx.drawImage(img, 0, 0, w, h);
+  const data = ctx.getImageData(0, 0, w, h).data;
+  for (let i = 3; i < data.length; i += 4) {
+    if (data[i] < 250) return true;
+  }
+  return false;
+}
+
+async function compressImage(file, quality) {
+  const { img } = await loadImage(file);
+  const width = img.naturalWidth;
+  const height = img.naturalHeight;
+  if (!width || !height) {
+    throw new Error('Could not read image dimensions');
+  }
+
+  const baseName = getBaseName(file.name);
+  const hasTransparency = imageHasTransparency(img, width, height);
+  const candidates = [];
+  const scale = Math.min(1, 1920 / width, 1080 / height);
+  const outWidth = Math.max(1, Math.round(width * scale));
+  const outHeight = Math.max(1, Math.round(height * scale));
+  const canvas = document.createElement('canvas');
+  canvas.width = outWidth;
+  canvas.height = outHeight;
+  const ctx = canvas.getContext('2d');
+  if (!ctx) throw new Error('This browser could not create an image canvas');
+  if (!hasTransparency) {
+    ctx.fillStyle = '#fff';
+    ctx.fillRect(0, 0, outWidth, outHeight);
+  }
+  ctx.drawImage(img, 0, 0, outWidth, outHeight);
+
+  // Try several quality passes and keep the smallest supported encoding.
+  const passes = [...new Set([quality, Math.max(0.35, quality - 0.15), 0.55])];
+  const encodings = hasTransparency
+    ? [['image/webp', `${baseName}_compressed.webp`], ['image/png', `${baseName}_compressed.png`]]
+    : [['image/webp', `${baseName}_compressed.webp`], ['image/jpeg', `${baseName}_compressed.jpg`]];
+  for (const [mime, fileName] of encodings) {
+    for (const pass of (mime === 'image/png' ? [undefined] : passes)) {
+      const blob = await canvasToBlob(canvas, mime, pass);
+      // Some browsers silently return PNG for unsupported MIME types.
+      if (blob && blob.type === mime) candidates.push({ blob, fileName });
+      if (mime === 'image/png') break;
+    }
+  }
+
+  if (candidates.length === 0) {
+    throw new Error('Could not compress this image');
+  }
+
+  // Always pick the smallest candidate.
+  const smallest = candidates.reduce((a, b) => (b.blob.size < a.blob.size ? b : a));
+  return smallest;
+}
+
+async function compressPdf(file, quality) {
+  const baseName = getBaseName(file.name);
+  const arrayBuffer = await file.arrayBuffer();
+  const candidates = [];
+
+  // Candidate 1: lossless structural re-save with pdf-lib.
+  try {
+    const pdfLib = await import('pdf-lib');
+    const doc = await pdfLib.PDFDocument.load(arrayBuffer, { ignoreEncryption: true });
+    const saved = await doc.save({ useObjectStreams: true });
+    candidates.push({
+      blob: new Blob([saved], { type: 'application/pdf' }),
+      fileName: `${baseName}_compressed.pdf`,
+    });
+  } catch (e) {
+    console.warn('pdf-lib re-save skipped:', e);
+  }
+
+  // Candidate 2: image-based rebuild. Only beneficial for scanned /
+  // image-heavy PDFs. For text PDFs this is usually LARGER, so it is
+  // discarded by pick-smallest below and by buildCompressionResult.
+  try {
     const pdfjsLib = await getPdfJsLib();
-    const arrayBuffer = await file.arrayBuffer();
     const pdfDoc = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
-    const pdf = new jsPDF();
-    
+    const pages = [];
     for (let i = 1; i <= pdfDoc.numPages; i++) {
       const page = await pdfDoc.getPage(i);
-      const viewport = page.getViewport({ scale: 1.5 });
+      const viewport = page.getViewport({ scale: 1 });
       const canvas = document.createElement('canvas');
       canvas.width = viewport.width;
       canvas.height = viewport.height;
-      await page.render({ canvasContext: canvas.getContext('2d'), viewport }).promise;
-      
-      if (i > 1) pdf.addPage();
-      const imgData = canvas.toDataURL('image/jpeg', quality);
-      const pageWidth = pdf.internal.pageSize.getWidth();
-      const pageHeight = pdf.internal.pageSize.getHeight();
-      pdf.addImage(imgData, 'JPEG', 0, 0, pageWidth, pageHeight);
+      const canvasCtx = canvas.getContext('2d');
+      canvasCtx.fillStyle = '#ffffff';
+      canvasCtx.fillRect(0, 0, viewport.width, viewport.height);
+      await page.render({ canvasContext: canvasCtx, viewport }).promise;
+      pages.push({
+        imgData: canvas.toDataURL('image/jpeg', quality),
+        width: viewport.width,
+        height: viewport.height,
+      });
     }
-    
-    const blob = pdf.output('blob');
+
+    let pdf;
+    pages.forEach((p, index) => {
+      const orientation = p.height >= p.width ? 'portrait' : 'landscape';
+      const format = [Math.round(p.width), Math.round(p.height)];
+      if (index === 0) {
+        pdf = new jsPDF({ orientation, unit: 'pt', format });
+      } else {
+        pdf.addPage(format, orientation);
+      }
+      pdf.addImage(p.imgData, 'JPEG', 0, 0, p.width, p.height);
+    });
+    candidates.push({
+      blob: pdf.output('blob'),
+      fileName: `${baseName}_compressed.pdf`,
+    });
+  } catch (e) {
+    console.warn('PDF rasterization skipped:', e);
+  }
+
+  if (candidates.length === 0) {
     return {
-      blob,
-      fileName: `${getBaseName(file.name)}_compressed.pdf`,
-      size: blob.size,
-      originalSize: file.size,
-      url: URL.createObjectURL(blob),
+      blob: file.slice(0, file.size, file.type || 'application/pdf'),
+      fileName: file.name,
+      message: 'Original kept — this PDF could not be compressed',
     };
   }
-  
-  // Compress text files
-  if (extension === 'txt' || extension === 'csv') {
-    const text = await file.text();
-    const compressed = text.replace(/\s+/g, ' ').trim();
-    const blob = new Blob([compressed], { type: file.type || 'text/plain' });
-    return {
-      blob,
-      fileName: `${getBaseName(file.name)}_compressed.${extension}`,
-      size: blob.size,
-      originalSize: file.size,
-      url: URL.createObjectURL(blob),
-    };
+
+  return candidates.reduce((a, b) => (b.blob.size < a.blob.size ? b : a));
+}
+
+async function compressText(file, extension) {
+  const lines = (await file.text())
+    .split(/\r\n|\r|\n/)
+    .map((line) => line.replace(/[ \t]+/g, ' ').trim());
+
+  // CSV rows are separated by newlines, so every line must be preserved.
+  let body;
+  if (extension === 'csv') {
+    body = lines.join('\n');
+  } else {
+    // TXT: also collapse consecutive blank lines while keeping single ones.
+    const merged = [];
+    let prevBlank = false;
+    for (const line of lines) {
+      if (line === '') {
+        if (prevBlank) continue;
+        prevBlank = true;
+      } else {
+        prevBlank = false;
+      }
+      merged.push(line);
+    }
+    body = merged.join('\n').trim();
   }
-  
-  throw new Error('This file type is not supported for compression');
+
+  return {
+    blob: new Blob([body], { type: file.type || 'text/plain' }),
+    fileName: `${getBaseName(file.name)}_compressed.${extension}`,
+  };
+}
+
+export async function compressFile(file, quality = 0.7) {
+  if (!file || typeof file.size !== 'number' || !file.name) throw new Error('Choose a valid file to compress');
+  quality = Math.min(1, Math.max(0.1, Number(quality) || 0.7));
+  const extension = getFileExtension(file.name);
+  let candidate;
+
+  // Compress images
+  if (SUPPORTED_IMAGE_FORMATS.includes(extension)) {
+    if (extension === 'gif') {
+      candidate = { blob: file, fileName: file.name, message: 'Animated GIFs are kept intact' };
+    } else {
+      candidate = await compressImage(file, quality);
+    }
+  } else if (extension === 'pdf') {
+    candidate = await compressPdf(file, quality);
+  } else if (extension === 'txt' || extension === 'csv') {
+    candidate = await compressText(file, extension);
+  } else {
+    throw new Error('This file type is not supported for compression');
+  }
+
+  return buildCompressionResult(file, candidate.blob, candidate.fileName, candidate.message || null);
 }
 
 // ============ File to Link ============

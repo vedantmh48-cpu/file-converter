@@ -1,5 +1,6 @@
 /** @type {import('tailwindcss').Config} */
 module.exports = {
+  darkMode: 'class',
   content: [
     "./src/**/*.{js,jsx,ts,tsx}",
     "./public/index.html"
@@ -7,25 +8,25 @@ module.exports = {
   theme: {
     extend: {
       fontFamily: {
-        sans: ['Inter', 'Plus Jakarta Sans', 'system-ui', 'sans-serif'],
+        sans: ['-apple-system', 'BlinkMacSystemFont', 'SF Pro Text', 'SF Pro Display', 'Segoe UI', 'Roboto', 'sans-serif'],
       },
       colors: {
         brand: {
-          50: '#EEF2FF',
-          100: '#E0E7FF',
-          200: '#C7D2FE',
-          300: '#A5B4FC',
-          400: '#818CF8',
-          500: '#6366F1',
-          600: '#4F46E5',
-          700: '#4338CA',
-          800: '#3730A3',
-          900: '#312E81',
+          50: '#e8f6f7',
+          100: '#c8ecee',
+          200: '#9cdee2',
+          300: '#6bcbd2',
+          400: '#3bb2bd',
+          500: '#168f9b',
+          600: '#087f8c',
+          700: '#086b75',
+          800: '#09565e',
+          900: '#0b464c',
         },
         surface: {
-          DEFAULT: '#FFFFFF',
-          secondary: '#F8FAFC',
-          border: '#E2E8F0',
+          DEFAULT: 'var(--surface)',
+          secondary: 'var(--surface-secondary)',
+          border: 'var(--surface-border)',
         }
       },
       animation: {

@@ -2,72 +2,184 @@
 @tailwind components;
 @tailwind utilities;
 
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap');
-
 @layer base {
+  :root {
+    --surface: #ffffff;
+    --surface-secondary: #f5f5f7;
+    --surface-border: #d9d9de;
+    --text-primary: #1c1c1e;
+    --text-secondary: #636366;
+    --accent: #087f8c;
+    color-scheme: light;
+  }
+
+  .dark {
+    --surface: #1c1c1e;
+    --surface-secondary: #121214;
+    --surface-border: #38383a;
+    --text-primary: #f5f5f7;
+    --text-secondary: #aeaeb2;
+    --accent: #52c7d1;
+    color-scheme: dark;
+  }
+
   * {
     @apply border-surface-border;
   }
+
+  html {
+    scroll-behavior: smooth;
+  }
+
+  section[id] {
+    scroll-margin-top: 5rem;
+  }
+
   body {
-    @apply bg-white text-gray-900 antialiased;
-    font-family: 'Inter', 'Plus Jakarta Sans', system-ui, sans-serif;
+    @apply bg-white text-gray-900 antialiased dark:bg-gray-950 dark:text-gray-100;
+    font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "SF Pro Display", "Segoe UI", Roboto, sans-serif;
+    transition: background-color 0.2s ease, color 0.2s ease;
+  }
+
+  h1, h2, h3, h4, h5, h6 {
+    @apply tracking-normal;
   }
 }
 
 @layer components {
   .glass-banner {
-    @apply backdrop-blur-xl bg-white/80 border-t border-surface-border shadow-lg;
+    @apply backdrop-blur-xl bg-white/85 border-t border-surface-border shadow-lg dark:bg-gray-900/85 dark:border-gray-700;
   }
-  
+
   .dropzone {
-    @apply border-2 border-dashed border-gray-300 rounded-2xl p-12 text-center 
+    @apply border-2 border-dashed border-gray-300 rounded-2xl p-10 text-center
            transition-all duration-300 ease-out cursor-pointer
-           hover:border-brand-400 hover:bg-brand-50/30;
+           hover:border-brand-400 hover:bg-brand-50/30
+           dark:border-gray-700 dark:hover:border-brand-400 dark:hover:bg-brand-500/5 dark:bg-gray-900/40;
   }
-  
+
   .dropzone-active {
-    @apply border-brand-500 bg-brand-50/50 scale-[1.01];
+    @apply border-brand-500 bg-brand-50/60 scale-[1.01] dark:border-brand-400 dark:bg-brand-500/15;
   }
 
   .btn-primary {
     @apply inline-flex items-center justify-center px-6 py-3 rounded-xl 
            bg-brand-600 text-white font-semibold text-sm
-           hover:bg-brand-700 active:bg-brand-800 
-           transition-all duration-200 shadow-sm hover:shadow-md
-           focus:outline-none focus:ring-2 focus:ring-brand-500 focus:ring-offset-2
+           hover:bg-brand-700 active:bg-brand-800 active:scale-[0.98]
+           transition-all duration-200 shadow-sm hover:shadow-md shadow-brand-600/20
+           focus:outline-none focus:ring-2 focus:ring-brand-500 focus:ring-offset-2 focus:ring-offset-white dark:focus:ring-offset-gray-950
            disabled:opacity-50 disabled:cursor-not-allowed;
   }
 
   .btn-secondary {
     @apply inline-flex items-center justify-center px-6 py-3 rounded-xl
            border border-surface-border bg-white text-gray-700 font-semibold text-sm
-           hover:bg-gray-50 hover:border-gray-300
+           hover:bg-gray-50 hover:border-gray-300 active:scale-[0.98]
            transition-all duration-200 shadow-sm
-           focus:outline-none focus:ring-2 focus:ring-brand-500 focus:ring-offset-2;
+           focus:outline-none focus:ring-2 focus:ring-brand-500 focus:ring-offset-2 focus:ring-offset-white dark:focus:ring-offset-gray-950
+           dark:bg-gray-900 dark:text-gray-200 dark:border-gray-700 dark:hover:bg-gray-800 dark:hover:border-gray-600;
   }
 
   .btn-ghost {
     @apply inline-flex items-center justify-center px-4 py-2 rounded-lg
            text-gray-600 font-medium text-sm
-           hover:bg-gray-100 hover:text-gray-900
-           transition-all duration-200;
+           hover:bg-gray-100 hover:text-gray-900 active:scale-[0.98]
+           transition-all duration-200
+           dark:text-gray-400 dark:hover:bg-gray-800 dark:hover:text-gray-100;
   }
 
   .card {
-    @apply bg-white rounded-2xl border border-surface-border shadow-sm
-           hover:shadow-md transition-shadow duration-300;
+    @apply bg-white rounded-2xl border border-gray-200/80 shadow-sm
+           transition-all duration-300 ease-out
+           dark:bg-gray-900 dark:border-gray-800;
+    position: relative;
+    box-shadow:
+      0 1px 2px rgb(15 23 42 / 0.04),
+      0 8px 24px rgb(15 23 42 / 0.035),
+      0 0 0 1px rgb(99 102 241 / 0.03),
+      0 0 22px rgb(99 102 241 / 0.07);
+  }
+
+  .card::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    background:
+      radial-gradient(130px circle at 0% 0%, rgb(255 255 255 / 0.6), transparent 60%),
+      radial-gradient(150px circle at 100% 100%, rgb(99 102 241 / 0.16), transparent 65%);
+    opacity: 0;
+    transition: opacity 0.4s ease;
+    pointer-events: none;
+  }
+
+  .dark .card::after {
+    background:
+      radial-gradient(130px circle at 0% 0%, rgb(255 255 255 / 0.12), transparent 60%),
+      radial-gradient(150px circle at 100% 100%, rgb(99 102 241 / 0.22), transparent 65%);
+  }
+
+  .card:hover {
+    @apply -translate-y-0.5 border-gray-300 shadow-lg dark:border-gray-700;
+    box-shadow:
+      0 12px 30px rgb(15 23 42 / 0.09),
+      0 0 0 1px rgb(99 102 241 / 0.14),
+      0 10px 50px rgb(99 102 241 / 0.24);
+  }
+
+  .card:hover::after {
+    opacity: 1;
   }
 
   .card-floating {
-    @apply bg-white rounded-2xl shadow-lg border border-surface-border;
+    @apply bg-white rounded-2xl border border-gray-200/80 shadow-xl shadow-gray-900/[0.06]
+           dark:bg-gray-900 dark:border-gray-800 dark:shadow-black/30;
+    position: relative;
+    box-shadow:
+      0 20px 50px -12px rgb(15 23 42 / 0.12),
+      0 0 0 1px rgb(99 102 241 / 0.05),
+      0 0 34px rgb(99 102 241 / 0.09);
+    transition: box-shadow 0.4s ease, transform 0.4s ease, border-color 0.4s ease;
+  }
+
+  .card-floating::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    background:
+      radial-gradient(160px circle at 0% 0%, rgb(255 255 255 / 0.5), transparent 60%),
+      radial-gradient(180px circle at 100% 100%, rgb(99 102 241 / 0.14), transparent 65%);
+    opacity: 0;
+    transition: opacity 0.45s ease;
+    pointer-events: none;
+  }
+
+  .dark .card-floating::after {
+    background:
+      radial-gradient(160px circle at 0% 0%, rgb(255 255 255 / 0.1), transparent 60%),
+      radial-gradient(180px circle at 100% 100%, rgb(99 102 241 / 0.2), transparent 65%);
+  }
+
+  .card-floating:hover {
+    border-color: rgb(99 102 241 / 0.35);
+    box-shadow:
+      0 24px 60px -12px rgb(15 23 42 / 0.18),
+      0 0 0 1px rgb(99 102 241 / 0.12),
+      0 14px 70px rgb(99 102 241 / 0.28);
+  }
+
+  .card-floating:hover::after {
+    opacity: 1;
   }
 
   .input-field {
     @apply w-full px-4 py-3 rounded-xl border border-surface-border
            bg-white text-gray-900 text-sm
-           placeholder-gray-400
+           placeholder-gray-400 dark:placeholder-gray-500
            focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-brand-500
-           transition-all duration-200;
+           transition-all duration-200
+           dark:bg-gray-900 dark:text-gray-100 dark:border-gray-700;
   }
 
   .badge {
@@ -75,15 +187,15 @@
   }
 
   .badge-success {
-    @apply badge bg-emerald-50 text-emerald-700 border border-emerald-200;
+    @apply badge bg-emerald-50 text-emerald-700 border border-emerald-200 dark:bg-emerald-500/10 dark:text-emerald-400 dark:border-emerald-500/20;
   }
 
   .badge-info {
-    @apply badge bg-blue-50 text-blue-700 border border-blue-200;
+    @apply badge bg-blue-50 text-blue-700 border border-blue-200 dark:bg-blue-500/10 dark:text-blue-400 dark:border-blue-500/20;
   }
 
   .badge-warning {
-    @apply badge bg-amber-50 text-amber-700 border border-amber-200;
+    @apply badge bg-amber-50 text-amber-700 border border-amber-200 dark:bg-amber-500/10 dark:text-amber-400 dark:border-amber-500/20;
   }
 }
 
@@ -95,8 +207,8 @@
 
 /* Custom scrollbar */
 ::-webkit-scrollbar {
-  width: 6px;
-  height: 6px;
+  width: 8px;
+  height: 8px;
 }
 
 ::-webkit-scrollbar-track {
@@ -104,12 +216,12 @@
 }
 
 ::-webkit-scrollbar-thumb {
-  @apply bg-gray-300 rounded-full hover:bg-gray-400;
+  @apply bg-gray-300 rounded-full hover:bg-gray-400 dark:bg-gray-700 dark:hover:bg-gray-600;
 }
 
 /* Progress bar animation */
 .progress-bar {
-  @apply h-2 rounded-full bg-gray-100 overflow-hidden;
+  @apply h-2 rounded-full bg-gray-100 overflow-hidden dark:bg-gray-800;
 }
 
 .progress-bar-fill {
@@ -118,15 +230,16 @@
 
 /* File item styles */
 .file-item {
-  @apply flex items-center gap-4 p-4 rounded-xl border border-surface-border
-         bg-white hover:bg-gray-50 transition-all duration-200;
+  @apply flex items-center gap-4 p-4 rounded-2xl border border-surface-border
+         bg-white hover:bg-gray-50 transition-all duration-200
+         dark:bg-gray-900 dark:hover:bg-gray-800;
 }
 
 .file-item-enter {
   animation: slideUp 0.3s ease-out;
 }
 
-/* Shooting star / sparkle animation for hero */
+/* Floating animation for hero decorations */
 @keyframes float {
   0%, 100% { transform: translateY(0px) rotate(0deg); }
   33% { transform: translateY(-10px) rotate(1deg); }
@@ -140,4 +253,85 @@
 .float-animation-delayed {
   animation: float 8s ease-in-out infinite;
   animation-delay: 2s;
+}
+
+/* Gentle breathing pulse for the hero glow orbs */
+@keyframes glowPulse {
+  0%, 100% { opacity: 0.35; transform: scale(1); }
+  50% { opacity: 0.9; transform: scale(1.12); }
+}
+
+.glow-pulse {
+  animation: glowPulse 6s ease-in-out infinite;
+}
+
+/* Slow drifting "light" animation for ambient background glows */
+@keyframes glowDrift {
+  0%, 100% { transform: translate(0, 0) scale(1); }
+  50% { transform: translate(36px, -28px) scale(1.14); }
+}
+
+.glow-drift {
+  animation: glowDrift 9s ease-in-out infinite;
+}
+
+/* Pulsing light glow around the hero glass card */
+@keyframes heroCardGlow {
+  0%, 100% {
+    box-shadow:
+      0 0 40px rgb(99 102 241 / 0.16),
+      0 0 90px rgb(139 92 246 / 0.12),
+      0 25px 60px -15px rgb(15 23 42 / 0.25);
+  }
+  50% {
+    box-shadow:
+      0 0 75px rgb(99 102 241 / 0.34),
+      0 0 135px rgb(139 92 246 / 0.22),
+      0 25px 60px -15px rgb(15 23 42 / 0.25);
+  }
+}
+
+.hero-card-glow {
+  animation: heroCardGlow 5s ease-in-out infinite;
+  will-change: box-shadow;
+}
+
+/* Animated gradient text */
+@keyframes gradientShift {
+  0%, 100% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+}
+
+.animated-gradient-text {
+  background-size: 220% auto;
+  animation: gradientShift 5s ease-in-out infinite;
+}
+
+/* Gentle icon float for section decorations */
+@keyframes iconFloat {
+  0%, 100% { transform: translateY(0) rotate(0deg); }
+  50% { transform: translateY(-6px) rotate(3deg); }
+}
+
+.icon-float {
+  animation: iconFloat 4s ease-in-out infinite;
+}
+
+/* Hide scrollbars on horizontal chips */
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+/* Respect the "reduce motion" setting for ALL animations */
+.reduce-motion *,
+.reduce-motion *::before,
+.reduce-motion *::after {
+  animation-duration: 0.001s !important;
+  animation-iteration-count: 1 !important;
+  transition-duration: 0.001s !important;
+  scroll-behavior: auto !important;
 }

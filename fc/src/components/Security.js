@@ -37,7 +37,7 @@ const points = [
 
 export default function Security() {
   return (
-    <section id="security" className="py-20 lg:py-28 bg-surface-secondary">
+    <section id="security" className="py-20 lg:py-28 bg-surface-secondary dark:bg-gray-900/40">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <motion.div
           initial={{ opacity: 0, y: 20 }}
@@ -45,15 +45,15 @@ export default function Security() {
           viewport={{ once: true }}
           className="text-center mb-16"
         >
-          <span className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-emerald-50 border border-emerald-200 text-emerald-700 text-sm font-medium mb-4">
+          <span className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-emerald-50 dark:bg-emerald-500/10 border border-emerald-200 dark:border-emerald-500/25 text-emerald-700 dark:text-emerald-400 text-sm font-medium mb-4">
             <Shield className="w-4 h-4" />
             Your Privacy is Our Priority
           </span>
-          <h2 className="text-3xl lg:text-4xl font-bold text-gray-900 mt-4">
+          <h2 className="text-3xl lg:text-4xl font-bold text-gray-900 dark:text-gray-50 mt-4">
             Security & Privacy
           </h2>
-          <p className="mt-3 text-gray-500 text-lg max-w-2xl mx-auto">
-            We take your privacy seriously. FileFlex is designed from the ground up to ensure your files remain yours and yours alone.
+          <p className="mt-3 text-gray-500 dark:text-gray-400 text-lg max-w-2xl mx-auto">
+            Your files stay on your device. Always.
           </p>
         </motion.div>
 
@@ -68,12 +68,12 @@ export default function Security() {
               className="card p-6"
             >
               <div className="flex items-start gap-4">
-                <div className="w-10 h-10 rounded-xl bg-emerald-50 flex items-center justify-center flex-shrink-0">
-                  <point.icon className="w-5 h-5 text-emerald-600" />
+                <div className="w-10 h-10 rounded-xl bg-emerald-50 dark:bg-emerald-500/10 flex items-center justify-center flex-shrink-0">
+                  <point.icon className="w-5 h-5 text-emerald-600 dark:text-emerald-400" />
                 </div>
                 <div>
-                  <h3 className="text-base font-bold text-gray-900 mb-1.5">{point.title}</h3>
-                  <p className="text-sm text-gray-500 leading-relaxed">{point.description}</p>
+                  <h3 className="text-base font-bold text-gray-900 dark:text-gray-100 mb-1.5">{point.title}</h3>
+                  <p className="text-sm text-gray-500 dark:text-gray-400 leading-relaxed">{point.description}</p>
                 </div>
               </div>
             </motion.div>
@@ -93,11 +93,11 @@ export default function Security() {
             { label: 'Open Source', desc: 'Transparent code' },
             { label: 'GDPR Compliant', desc: 'Privacy by design' },
           ].map((badge) => (
-            <div key={badge.label} className="flex items-center gap-3 px-5 py-3 rounded-xl bg-white border border-surface-border shadow-sm">
+            <div key={badge.label} className="flex items-center gap-3 px-5 py-3 rounded-xl bg-white dark:bg-gray-900 border border-surface-border dark:border-gray-800 shadow-sm">
               <CheckCircle2 className="w-5 h-5 text-emerald-500" />
               <div>
-                <p className="text-sm font-semibold text-gray-900">{badge.label}</p>
-                <p className="text-xs text-gray-400">{badge.desc}</p>
+                <p className="text-sm font-semibold text-gray-900 dark:text-gray-100">{badge.label}</p>
+                <p className="text-xs text-gray-400 dark:text-gray-500">{badge.desc}</p>
               </div>
             </div>
           ))}

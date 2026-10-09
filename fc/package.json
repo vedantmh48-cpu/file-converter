@@ -2,7 +2,10 @@
   "name": "fc",
   "version": "0.1.0",
   "private": true,
-  "homepage": "https://vedantmh48-cpu.github.io/file-converter",
+  "engines": {
+    "node": ">=22"
+  },
+  "homepage": ".",
   "dependencies": {
     "@headlessui/react": "^2.2.10",
     "@tailwindcss/forms": "^0.5.11",
@@ -28,7 +31,9 @@
   },
   "scripts": {
     "start": "react-scripts start",
+    "dev": "npx --yes vercel dev",
     "build": "react-scripts build",
+    "vercel-build": "npm run build",
     "test": "react-scripts test",
     "eject": "react-scripts eject",
     "predeploy": "npm run build",

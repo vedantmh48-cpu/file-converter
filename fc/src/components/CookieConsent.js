@@ -39,7 +39,7 @@ export default function CookieConsent({ onOpenPreferences }) {
           animate={{ y: 0, opacity: 1 }}
           exit={{ y: 100, opacity: 0 }}
           transition={{ type: 'spring', damping: 25, stiffness: 300 }}
-          className="fixed bottom-0 left-0 right-0 z-50 p-4"
+          className="fixed bottom-0 left-0 right-0 z-[95] p-4"
         >
           <div className="max-w-4xl mx-auto">
             <div className="glass-banner rounded-2xl p-4 lg:p-6 border border-surface-border">
@@ -49,13 +49,13 @@ export default function CookieConsent({ onOpenPreferences }) {
                     <Cookie className="w-5 h-5 text-brand-600" />
                   </div>
                   <div>
-                    <p className="text-sm font-semibold text-gray-900">Cookie Preferences</p>
-                    <p className="text-xs text-gray-500 mt-1 max-w-xl">
+                    <p className="text-sm font-semibold text-gray-900 dark:text-gray-100">Cookie Preferences</p>
+                    <p className="text-xs text-gray-500 dark:text-gray-400 mt-1 max-w-xl">
                       We use essential cookies to ensure the website functions properly. 
                       We do not use analytics or tracking cookies. 
                       <button 
                         onClick={() => setShowDetails(!showDetails)}
-                        className="text-brand-600 hover:text-brand-700 font-medium ml-1"
+                        className="text-brand-600 dark:text-brand-400 hover:text-brand-700 dark:hover:text-brand-300 font-medium ml-1"
                       >
                         {showDetails ? 'Show less' : 'Learn more'}
                       </button>
@@ -69,25 +69,25 @@ export default function CookieConsent({ onOpenPreferences }) {
                           exit={{ height: 0, opacity: 0 }}
                           className="overflow-hidden"
                         >
-                          <div className="mt-3 p-3 bg-gray-50 rounded-xl text-xs text-gray-600 space-y-2">
+                          <div className="mt-3 p-3 bg-gray-50 dark:bg-gray-900/60 rounded-xl text-xs text-gray-600 dark:text-gray-300 space-y-2">
                             <div className="flex items-start gap-2">
                               <CheckCircle2 className="w-3.5 h-3.5 text-emerald-500 mt-0.5" />
                               <div>
-                                <p className="font-medium text-gray-900">Essential Cookies</p>
+                                <p className="font-medium text-gray-900 dark:text-gray-100">Essential Cookies</p>
                                 <p>Required for basic functionality. No user tracking.</p>
                               </div>
                             </div>
                             <div className="flex items-start gap-2">
                               <CheckCircle2 className="w-3.5 h-3.5 text-gray-400 mt-0.5" />
                               <div>
-                                <p className="font-medium text-gray-900">Analytics Cookies</p>
+                                <p className="font-medium text-gray-900 dark:text-gray-100">Analytics Cookies</p>
                                 <p>We do not use analytics cookies. Your activity is not tracked.</p>
                               </div>
                             </div>
                             <div className="flex items-start gap-2">
                               <CheckCircle2 className="w-3.5 h-3.5 text-gray-400 mt-0.5" />
                               <div>
-                                <p className="font-medium text-gray-900">Marketing Cookies</p>
+                                <p className="font-medium text-gray-900 dark:text-gray-100">Marketing Cookies</p>
                                 <p>We do not use marketing cookies. No ads, no tracking.</p>
                               </div>
                             </div>

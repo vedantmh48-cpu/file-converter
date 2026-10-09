@@ -1,15 +1,15 @@
-import React, { useState, useCallback, useRef } from 'react';
+import React, { useState, useCallback, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { 
+import {
   Upload, File, X, Download, CheckCircle2,
-  ArrowRight, Settings2, Merge, 
+  ArrowLeftRight, Settings2, Merge,
   Split, FileDown, Loader2, Maximize2, Minimize2,
-  FileText, Table, Presentation, Pencil, Check, ExternalLink
+  FileText, Table, Presentation, Pencil, Check, ExternalLink, AlertTriangle
 } from 'lucide-react';
-import { 
-  formatFileSize, getFileExtension, getBaseName, 
-  SUPPORTED_IMAGE_FORMATS, convertMultipleFiles, 
-  downloadFile, downloadAsZip, openGoogleCreate, renameFile 
+import {
+  formatFileSize, getFileExtension, getBaseName,
+  SUPPORTED_IMAGE_FORMATS, convertMultipleFiles,
+  downloadFile, downloadAsZip, openGoogleCreate, renameFile
 } from '../utils/conversionUtils';
 
 const FROM_FORMATS = [
@@ -59,6 +59,7 @@ export default function Converter() {
   const [toFormat, setToFormat] = useState('png');
   const [converting, setConverting] = useState(false);
   const [convertedResults, setConvertedResults] = useState([]);
+  const [conversionError, setConversionError] = useState('');
   const [progress, setProgress] = useState(0);
   const [dragActive, setDragActive] = useState(false);
   const [showOptions, setShowOptions] = useState(false);
@@ -67,8 +68,23 @@ export default function Converter() {
   const [renameValue, setRenameValue] = useState('');
   const inputRef = useRef(null);
   const dropRef = useRef(null);
+  const filesRef = useRef(files);
 
-  const handleDrag = useCallback((e) => {
+  useEffect(() => {
+    filesRef.current = files;
+  }, [files]);
+
+  // Revoke object URLs on unmount to avoid memory leaks
+  useEffect(() => {
+    return () => {
+      filesRef.current.forEach((f) => {
+        if (f.preview) URL.revokeObjectURL(f.preview);
+      });
+    };
+  }, []);
+
+  const sameFormat = fromFormat === toFormat;
+const handleDrag = useCallback((e) => {
     e.preventDefault();
     e.stopPropagation();
     if (e.type === 'dragenter' || e.type === 'dragover') {
@@ -80,7 +96,6 @@ export default function Converter() {
 
   const handleDrop = useCallback((e) => {
     e.preventDefault();
-    e.stopPropagation();
     setDragActive(false);
     if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
       addFiles(e.dataTransfer.files);
@@ -90,6 +105,7 @@ export default function Converter() {
   const handleFileSelect = (e) => {
     if (e.target.files && e.target.files.length > 0) {
       addFiles(e.target.files);
+      e.target.value = null;
     }
   };
 
@@ -102,20 +118,36 @@ export default function Converter() {
       extension: getFileExtension(file.name),
       preview: URL.createObjectURL(file),
     }));
-    setFiles(prev => [...prev, ...newFiles]);
+    setFiles((prev) => [...prev, ...newFiles]);
     setConvertedResults([]);
+    setConversionError('');
     setProgress(0);
   };
 
   const removeFile = (id) => {
-    setFiles(prev => prev.filter(f => f.id !== id));
+    setFiles((prev) => {
+      const target = prev.find((f) => f.id === id);
+      if (target && target.preview) URL.revokeObjectURL(target.preview);
+      return prev.filter((f) => f.id !== id);
+    });
     setConvertedResults([]);
+    setConversionError('');
   };
 
   const clearAll = () => {
+    files.forEach((f) => {
+      if (f.preview) URL.revokeObjectURL(f.preview);
+    });
     setFiles([]);
     setConvertedResults([]);
+    setConversionError('');
     setProgress(0);
+  };
+
+  const swapFormats = () => {
+    setFromFormat(toFormat);
+    setToFormat(fromFormat);
+    setConvertedResults([]);
   };
 
   const getAcceptString = () => {
@@ -129,10 +161,11 @@ export default function Converter() {
   };
 
   const handleConvert = async () => {
-    if (files.length === 0) return;
+    if (files.length === 0 || sameFormat) return;
     setConverting(true);
     setProgress(0);
     setConvertedResults([]);
+    setConversionError('');
 
     try {
       const totalFiles = files.length;
@@ -140,13 +173,13 @@ export default function Converter() {
 
       // If converting multiple images to PDF with merge mode, pass all files at once
       if (
-        toFormat === 'pdf' && 
-        SUPPORTED_IMAGE_FORMATS.includes(fromFormat) && 
-        mergeMode === 'single' && 
+        toFormat === 'pdf' &&
+        SUPPORTED_IMAGE_FORMATS.includes(fromFormat) &&
+        mergeMode === 'single' &&
         files.length > 1
       ) {
         const result = await convertMultipleFiles(
-          files.map(f => f.file),
+          files.map((f) => f.file),
           fromFormat,
           toFormat,
           { mergeMode }
@@ -156,13 +189,17 @@ export default function Converter() {
       } else {
         for (let i = 0; i < files.length; i++) {
           const fileData = files[i];
-          const result = await convertMultipleFiles(
-            [fileData.file], 
-            fileData.extension || fromFormat, 
-            toFormat, 
-            { mergeMode }
-          );
-          results.push(...result);
+          try {
+            const result = await convertMultipleFiles(
+              [fileData.file],
+              fileData.extension || fromFormat,
+              toFormat,
+              { mergeMode }
+            );
+            results.push(...result);
+          } catch (error) {
+            results.push({ fileName: fileData.name, error: error.message });
+          }
           setProgress(Math.round(((i + 1) / totalFiles) * 100));
         }
       }
@@ -170,7 +207,7 @@ export default function Converter() {
       setConvertedResults(results);
     } catch (error) {
       console.error('Conversion error:', error);
-      alert('Conversion failed: ' + error.message);
+      setConversionError(error.message || 'The selected files could not be converted.');
     } finally {
       setConverting(false);
       setProgress(100);
@@ -178,10 +215,11 @@ export default function Converter() {
   };
 
   const handleDownloadAll = () => {
-    if (convertedResults.length === 1) {
-      downloadFile(convertedResults[0].blob, convertedResults[0].fileName);
-    } else if (convertedResults.length > 1) {
-      downloadAsZip(convertedResults);
+    const ready = convertedResults.filter((result) => result.blob);
+    if (ready.length === 1) {
+      downloadFile(ready[0].blob, ready[0].fileName);
+    } else if (ready.length > 1) {
+      downloadAsZip(ready);
     }
   };
 
@@ -203,9 +241,8 @@ export default function Converter() {
   const handleGoogleCreate = (type) => {
     openGoogleCreate(type);
   };
-
-  return (
-    <section id="converter" className="relative py-20 lg:py-28">
+return (
+    <section id="converter" className="relative py-20 lg:py-28 overflow-hidden">
       <div className="max-w-4xl mx-auto px-4 sm:px-6">
         {/* Section Header */}
         <div className="text-center mb-10">
@@ -216,26 +253,26 @@ export default function Converter() {
             transition={{ duration: 0.5 }}
           >
             <span className="badge-info mb-4">Free & Secure</span>
-            <h2 className="text-3xl lg:text-4xl font-bold text-gray-900 mt-3">
-              Convert Your Files Instantly
+            <h2 className="text-3xl lg:text-4xl font-bold text-gray-900 dark:text-gray-50 mt-3">
+              Convert Anything, Instantly
             </h2>
-            <p className="mt-3 text-gray-500 text-lg max-w-xl mx-auto">
-              Drag & drop or select files. Everything runs in your browser — 100% private.
+            <p className="mt-3 text-gray-500 dark:text-gray-400 text-lg max-w-xl mx-auto">
+              Drag &amp; drop. Runs 100% in your browser.
             </p>
           </motion.div>
         </div>
 
         {/* Google Create Section */}
         <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          whileInView={{ opacity: 1, y: 0 }}
+          initial={{ opacity: 0, y: 20, scale: 0.98 }}
+          whileInView={{ opacity: 1, y: 0, scale: 1 }}
           viewport={{ once: true }}
-          transition={{ duration: 0.5, delay: 0.05 }}
+          transition={{ type: 'spring', stiffness: 220, damping: 26, delay: 0.05 }}
           className="mb-8"
         >
           <div className="text-center mb-4">
-            <h3 className="text-lg font-semibold text-gray-800">Create New Documents</h3>
-            <p className="text-sm text-gray-500 mt-1">Open Google Docs, Sheets, or Slides to create new files</p>
+            <h3 className="text-lg font-semibold text-gray-800 dark:text-gray-100">Create New Documents</h3>
+            <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">Open Docs, Sheets or Slides</p>
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
             {GOOGLE_CREATE_OPTIONS.map((option) => {
@@ -244,16 +281,16 @@ export default function Converter() {
                 <button
                   key={option.type}
                   onClick={() => handleGoogleCreate(option.type)}
-                  className="group flex flex-col items-center gap-3 p-5 rounded-2xl border border-surface-border bg-white hover:border-brand-400 hover:bg-brand-50/30 hover:shadow-md transition-all duration-300"
+                  className="group flex flex-col items-center gap-3 p-5 rounded-2xl border border-surface-border bg-white dark:bg-gray-900 dark:border-gray-800 hover:border-brand-400 hover:bg-brand-50/30 dark:hover:bg-brand-500/5 hover:shadow-md transition-all duration-300"
                 >
-                  <div className="w-12 h-12 rounded-xl bg-brand-50 flex items-center justify-center group-hover:bg-brand-100 group-hover:scale-110 transition-all duration-300">
-                    <Icon className="w-6 h-6 text-brand-600" />
+                  <div className="w-12 h-12 rounded-xl bg-brand-50 dark:bg-brand-500/10 flex items-center justify-center group-hover:bg-brand-100 dark:group-hover:bg-brand-500/20 group-hover:scale-110 transition-all duration-300">
+                    <Icon className="w-6 h-6 text-brand-600 dark:text-brand-400" />
                   </div>
                   <div className="text-center">
-                    <p className="text-sm font-semibold text-gray-800">{option.label}</p>
-                    <p className="text-xs text-gray-500 mt-0.5">{option.description}</p>
+                    <p className="text-sm font-semibold text-gray-800 dark:text-gray-100">{option.label}</p>
+                    <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">{option.description}</p>
                   </div>
-                  <span className="inline-flex items-center gap-1 text-xs font-medium text-brand-600 opacity-0 group-hover:opacity-100 transition-opacity">
+                  <span className="inline-flex items-center gap-1 text-xs font-medium text-brand-600 dark:text-brand-400 opacity-0 group-hover:opacity-100 transition-opacity">
                     Open <ExternalLink className="w-3 h-3" />
                   </span>
                 </button>
@@ -264,54 +301,58 @@ export default function Converter() {
 
         {/* Converter Card */}
         <motion.div
-          initial={{ opacity: 0, y: 30 }}
-          whileInView={{ opacity: 1, y: 0 }}
+          initial={{ opacity: 0, y: 30, scale: 0.97 }}
+          whileInView={{ opacity: 1, y: 0, scale: 1 }}
           viewport={{ once: true }}
-          transition={{ duration: 0.5, delay: 0.1 }}
+          transition={{ type: 'spring', stiffness: 200, damping: 26, delay: 0.15 }}
           className="card-floating p-6 lg:p-8"
         >
-          {/* Format Selectors */}
-          <div className="grid grid-cols-1 sm:grid-cols-[1fr,auto,1fr] gap-3 items-end mb-6">
+{/* Format Selectors */}
+          <div className="grid grid-cols-1 sm:grid-cols-[1fr,auto,1fr] gap-3 items-end mb-5">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1.5">Convert From</label>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">Convert From</label>
               <select
                 value={fromFormat}
                 onChange={(e) => { setFromFormat(e.target.value); setConvertedResults([]); }}
                 className="input-field"
               >
                 <optgroup label="Image Formats">
-                  {FROM_FORMATS.filter(f => f.group === 'image').map(f => (
+                  {FROM_FORMATS.filter((f) => f.group === 'image').map((f) => (
                     <option key={f.value} value={f.value}>{f.label.toUpperCase()}</option>
                   ))}
                 </optgroup>
                 <optgroup label="Document Formats">
-                  {FROM_FORMATS.filter(f => f.group === 'document').map(f => (
+                  {FROM_FORMATS.filter((f) => f.group === 'document').map((f) => (
                     <option key={f.value} value={f.value}>{f.label.toUpperCase()}</option>
                   ))}
                 </optgroup>
               </select>
             </div>
 
-            <div className="flex justify-center pb-1">
-              <div className="w-10 h-10 rounded-xl bg-brand-50 flex items-center justify-center">
-                <ArrowRight className="w-5 h-5 text-brand-600" />
-              </div>
+            <div className="flex justify-center items-end pb-1">
+              <button
+                onClick={swapFormats}
+                title="Swap formats"
+                className="w-11 h-11 rounded-xl bg-brand-50 dark:bg-brand-500/10 flex items-center justify-center hover:bg-brand-100 dark:hover:bg-brand-500/20 transition-colors group"
+              >
+                <ArrowLeftRight className="w-5 h-5 text-brand-600 dark:text-brand-400 group-hover:rotate-180 transition-transform duration-300" />
+              </button>
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1.5">Convert To</label>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">Convert To</label>
               <select
                 value={toFormat}
                 onChange={(e) => { setToFormat(e.target.value); setConvertedResults([]); }}
                 className="input-field"
               >
                 <optgroup label="Image Formats">
-                  {TO_FORMATS.filter(f => f.group === 'image').map(f => (
+                  {TO_FORMATS.filter((f) => f.group === 'image').map((f) => (
                     <option key={f.value} value={f.value}>{f.label.toUpperCase()}</option>
                   ))}
                 </optgroup>
                 <optgroup label="Document Formats">
-                  {TO_FORMATS.filter(f => f.group === 'document').map(f => (
+                  {TO_FORMATS.filter((f) => f.group === 'document').map((f) => (
                     <option key={f.value} value={f.value}>{f.label.toUpperCase()}</option>
                   ))}
                 </optgroup>
@@ -319,17 +360,24 @@ export default function Converter() {
             </div>
           </div>
 
-          {/* Options Toggle */}
+          {/* Same format warning */}
+          {sameFormat && (
+            <div className="flex items-center gap-2.5 px-4 py-3 mb-4 rounded-xl bg-amber-50 dark:bg-amber-500/10 border border-amber-200 dark:border-amber-500/25 text-sm text-amber-700 dark:text-amber-400">
+              <AlertTriangle className="w-4 h-4 flex-shrink-0" />
+              <span>Source and target formats are the same. Pick a different target format to continue.</span>
+            </div>
+          )}
+{/* Options Toggle */}
           <button
             onClick={() => setShowOptions(!showOptions)}
-            className="flex items-center gap-2 text-sm text-gray-500 hover:text-gray-700 mb-4 transition-colors"
+            className="flex items-center gap-2 text-sm text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 mb-4 transition-colors"
           >
             <Settings2 className="w-4 h-4" />
             Advanced Options
             {showOptions ? <Minimize2 className="w-3 h-3" /> : <Maximize2 className="w-3 h-3" />}
           </button>
 
-          <AnimatePresence>
+          <AnimatePresence initial={false}>
             {showOptions && (
               <motion.div
                 initial={{ height: 0, opacity: 0 }}
@@ -337,17 +385,17 @@ export default function Converter() {
                 exit={{ height: 0, opacity: 0 }}
                 className="overflow-hidden"
               >
-                <div className="p-4 bg-gray-50 rounded-xl mb-4 space-y-3">
+                <div className="p-4 bg-gray-50 dark:bg-gray-950/40 rounded-xl mb-4 space-y-3">
                   {toFormat === 'pdf' && (
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">PDF Mode</label>
-                      <div className="flex gap-3">
+                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">PDF Mode</label>
+                      <div className="flex flex-wrap gap-3">
                         <button
                           onClick={() => setMergeMode('single')}
                           className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all ${
-                            mergeMode === 'single' 
-                              ? 'bg-brand-600 text-white shadow-sm' 
-                              : 'bg-white border border-surface-border text-gray-600 hover:bg-gray-50'
+                            mergeMode === 'single'
+                              ? 'bg-brand-600 text-white shadow-sm'
+                              : 'bg-white dark:bg-gray-900 border border-surface-border dark:border-gray-700 text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800'
                           }`}
                         >
                           <Merge className="w-4 h-4" />
@@ -356,9 +404,9 @@ export default function Converter() {
                         <button
                           onClick={() => setMergeMode('separate')}
                           className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all ${
-                            mergeMode === 'separate' 
-                              ? 'bg-brand-600 text-white shadow-sm' 
-                              : 'bg-white border border-surface-border text-gray-600 hover:bg-gray-50'
+                            mergeMode === 'separate'
+                              ? 'bg-brand-600 text-white shadow-sm'
+                              : 'bg-white dark:bg-gray-900 border border-surface-border dark:border-gray-700 text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800'
                           }`}
                         >
                           <Split className="w-4 h-4" />
@@ -366,9 +414,9 @@ export default function Converter() {
                         </button>
                       </div>
                       {SUPPORTED_IMAGE_FORMATS.includes(fromFormat) && files.length > 1 && (
-                        <p className="text-xs text-gray-500 mt-2">
-                          {mergeMode === 'single' 
-                            ? `All ${files.length} images will be merged into one PDF` 
+                        <p className="text-xs text-gray-500 dark:text-gray-400 mt-2">
+                          {mergeMode === 'single'
+                            ? `All ${files.length} images will be merged into one PDF`
                             : `Each image will be converted to its own PDF`}
                         </p>
                       )}
@@ -378,8 +426,7 @@ export default function Converter() {
               </motion.div>
             )}
           </AnimatePresence>
-
-          {/* Dropzone */}
+{/* Dropzone */}
           <div
             ref={dropRef}
             onDragEnter={handleDrag}
@@ -399,22 +446,22 @@ export default function Converter() {
             />
             <div className="flex flex-col items-center gap-3">
               <div className={`w-16 h-16 rounded-2xl flex items-center justify-center transition-all ${
-                dragActive ? 'bg-brand-100 scale-110' : 'bg-gray-50'
+                dragActive ? 'bg-brand-100 dark:bg-brand-500/20 scale-110' : 'bg-gray-50 dark:bg-gray-800'
               }`}>
                 <Upload className={`w-8 h-8 transition-colors ${
-                  dragActive ? 'text-brand-600' : 'text-gray-400'
+                  dragActive ? 'text-brand-600 dark:text-brand-400' : 'text-gray-400 dark:text-gray-500'
                 }`} />
               </div>
               <div>
-                <p className="text-base font-medium text-gray-700">
+                <p className="text-base font-medium text-gray-700 dark:text-gray-200">
                   {dragActive ? 'Drop files here' : 'Drag & drop files here'}
                 </p>
-                <p className="text-sm text-gray-400 mt-1">
-                  or <span className="text-brand-600 font-medium hover:underline">browse files</span>
+                <p className="text-sm text-gray-400 dark:text-gray-500 mt-1">
+                  or <span className="text-brand-600 dark:text-brand-400 font-medium hover:underline">browse files</span>
                 </p>
               </div>
-              <p className="text-xs text-gray-400">
-                Supports: JPG, PNG, WEBP, BMP, TIFF, GIF, SVG, ICO, PDF, TXT, DOC, DOCX, XLS, XLSX, CSV, PPT, PPTX
+              <p className="text-xs text-gray-400 dark:text-gray-500">
+                17 formats supported
               </p>
             </div>
           </div>
@@ -423,7 +470,7 @@ export default function Converter() {
           {files.length > 0 && (
             <div className="mt-6 space-y-3">
               <div className="flex items-center justify-between">
-                <p className="text-sm font-medium text-gray-700">
+                <p className="text-sm font-medium text-gray-700 dark:text-gray-300">
                   {files.length} file{files.length > 1 ? 's' : ''} selected
                 </p>
                 <button onClick={clearAll} className="text-sm text-red-500 hover:text-red-600 font-medium transition-colors">
@@ -440,16 +487,19 @@ export default function Converter() {
                     exit={{ opacity: 0, x: 20 }}
                     className="file-item group"
                   >
-                    <div className="w-10 h-10 rounded-lg bg-brand-50 flex items-center justify-center flex-shrink-0">
-                      <File className="w-5 h-5 text-brand-600" />
+                    <div className="w-10 h-10 rounded-lg bg-brand-50 dark:bg-brand-500/10 flex items-center justify-center flex-shrink-0">
+                      <File className="w-5 h-5 text-brand-600 dark:text-brand-400" />
                     </div>
                     <div className="flex-1 min-w-0">
-                      <p className="text-sm font-medium text-gray-900 truncate">{file.name}</p>
-                      <p className="text-xs text-gray-400">{formatFileSize(file.size)}</p>
+                      <p className="text-sm font-medium text-gray-900 dark:text-gray-100 truncate">{file.name}</p>
+                      <p className="text-xs text-gray-400 dark:text-gray-500">
+                        {formatFileSize(file.size)} · {file.extension.toUpperCase()}
+                      </p>
                     </div>
                     <button
                       onClick={() => removeFile(file.id)}
-                      className="p-1.5 rounded-lg hover:bg-red-50 text-gray-400 hover:text-red-500 transition-colors opacity-0 group-hover:opacity-100"
+                      className="p-1.5 rounded-lg hover:bg-red-50 dark:hover:bg-red-500/10 text-gray-400 hover:text-red-500 transition-colors opacity-0 group-hover:opacity-100"
+                      aria-label={`Remove ${file.name}`}
                     >
                       <X className="w-4 h-4" />
                     </button>
@@ -461,8 +511,8 @@ export default function Converter() {
               {converting && (
                 <div className="space-y-2">
                   <div className="flex items-center justify-between text-sm">
-                    <span className="text-gray-600">Converting...</span>
-                    <span className="text-brand-600 font-medium">{progress}%</span>
+                    <span className="text-gray-600 dark:text-gray-300">Converting...</span>
+                    <span className="text-brand-600 dark:text-brand-400 font-medium">{progress}%</span>
                   </div>
                   <div className="progress-bar">
                     <div className="progress-bar-fill" style={{ width: `${progress}%` }} />
@@ -473,7 +523,7 @@ export default function Converter() {
               {/* Convert Button */}
               <button
                 onClick={handleConvert}
-                disabled={converting}
+                disabled={converting || sameFormat}
                 className="btn-primary w-full gap-2 mt-2"
               >
                 {converting ? (
@@ -490,25 +540,34 @@ export default function Converter() {
               </button>
             </div>
           )}
-
-          {/* Results */}
+{/* Results */}
           {convertedResults.length > 0 && (
             <motion.div
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
-              className="mt-6 p-4 bg-emerald-50 rounded-xl border border-emerald-200"
+              className="mt-6 p-4 lg:p-5 bg-emerald-50 dark:bg-emerald-500/10 rounded-xl border border-emerald-200 dark:border-emerald-500/25"
             >
-              <div className="flex items-center gap-2 mb-3">
-                <CheckCircle2 className="w-5 h-5 text-emerald-600" />
-                <p className="text-sm font-semibold text-emerald-800">
-                  Conversion Complete! ({convertedResults.length} file{convertedResults.length > 1 ? 's' : ''})
-                </p>
+              <div className="flex items-center justify-between mb-3 flex-wrap gap-2">
+                <div className="flex items-center gap-2">
+                  <CheckCircle2 className="w-5 h-5 text-emerald-600 dark:text-emerald-400" />
+                  <p className="text-sm font-semibold text-emerald-800 dark:text-emerald-300">
+                    Conversion finished ({convertedResults.filter((result) => result.blob).length} of {convertedResults.length} files)
+                  </p>
+                </div>
+                {convertedResults.some((result) => result.blob) && <button
+                  onClick={handleDownloadAll}
+                  className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-semibold transition-colors shadow-sm"
+                >
+                  <Download className="w-4 h-4" />
+                  {convertedResults.length > 1 ? 'Download All as ZIP' : 'Download'}
+                </button>}
               </div>
-              <div className="space-y-2 max-h-40 overflow-y-auto">
-                {convertedResults.map((result, i) => (
-                  <div key={i} className="flex items-center justify-between bg-white rounded-lg p-3 border border-emerald-100">
-                    <div className="flex items-center gap-2 min-w-0 flex-1">
-                      <FileDown className="w-4 h-4 text-emerald-500 flex-shrink-0" />
+
+              <div className="space-y-2 max-h-64 overflow-y-auto pr-1">
+            {convertedResults.map((result, i) => (
+              <div key={`${result.fileName}-${i}`} className="flex items-center gap-3 bg-white dark:bg-gray-900 rounded-xl p-3 border border-emerald-100 dark:border-emerald-500/20">
+                    <div className="flex items-center gap-3 flex-1 min-w-0">
+                      {result.error ? <span role="alert" className="text-sm text-red-600 dark:text-red-400">{result.fileName}: {result.error}</span> : <>
                       {renamingIndex === i ? (
                         <div className="flex items-center gap-2 flex-1 min-w-0">
                           <input
@@ -524,23 +583,24 @@ export default function Converter() {
                           />
                           <button
                             onClick={() => handleRename(i)}
-                            className="p-1.5 rounded-lg bg-emerald-100 text-emerald-600 hover:bg-emerald-200 transition-colors flex-shrink-0"
+                            className="p-1.5 rounded-lg bg-emerald-100 dark:bg-emerald-500/20 text-emerald-600 hover:bg-emerald-200 transition-colors flex-shrink-0"
                           >
                             <Check className="w-4 h-4" />
                           </button>
                         </div>
                       ) : (
                         <>
-                          <span className="text-sm text-gray-700 truncate">{result.fileName}</span>
-                          <span className="text-xs text-gray-400">({formatFileSize(result.size)})</span>
+                          <span className="text-sm text-gray-700 dark:text-gray-200 truncate">{result.fileName}</span>
+                          <span className="text-xs text-gray-400 dark:text-gray-500">({formatFileSize(result.size)})</span>
                         </>
                       )}
+                      </>}
                     </div>
-                    <div className="flex items-center gap-1 flex-shrink-0">
+                    {result.blob && <div className="flex items-center gap-1 flex-shrink-0">
                       {renamingIndex !== i && (
                         <button
                           onClick={() => startRename(i)}
-                          className="p-1.5 rounded-lg hover:bg-gray-100 text-gray-400 hover:text-gray-600 transition-colors"
+                          className="p-1.5 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 transition-colors"
                           title="Rename file"
                         >
                           <Pencil className="w-4 h-4" />
@@ -548,26 +608,22 @@ export default function Converter() {
                       )}
                       <button
                         onClick={() => downloadFile(result.blob, result.fileName)}
-                        className="btn-ghost text-brand-600 hover:text-brand-700"
+                        className="btn-ghost text-brand-600 dark:text-brand-400 hover:text-brand-700"
+                        title="Download"
                       >
                         <Download className="w-4 h-4" />
                       </button>
-                    </div>
+                    </div>}
                   </div>
                 ))}
               </div>
-              {convertedResults.length > 1 && (
-                <button onClick={handleDownloadAll} className="btn-primary w-full mt-3 gap-2">
-                  <Download className="w-4 h-4" />
-                  Download All as ZIP
-                </button>
-              )}
             </motion.div>
           )}
+          {conversionError && <p role="alert" className="mt-4 text-sm text-red-600 dark:text-red-400">{conversionError}</p>}
         </motion.div>
 
         {/* Trust Badges */}
-        <div className="flex flex-wrap justify-center gap-6 mt-8 text-sm text-gray-400">
+        <div className="flex flex-wrap justify-center gap-6 mt-8 text-sm text-gray-400 dark:text-gray-500">
           <span className="flex items-center gap-1.5">
             <CheckCircle2 className="w-4 h-4 text-emerald-500" />
             100% Client-Side
@@ -582,7 +638,7 @@ export default function Converter() {
           </span>
           <span className="flex items-center gap-1.5">
             <CheckCircle2 className="w-4 h-4 text-emerald-500" />
-            Free & Unlimited
+            Unlimited & Free
           </span>
         </div>
       </div>
