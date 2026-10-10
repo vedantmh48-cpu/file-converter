@@ -6,7 +6,7 @@ import {
   ArrowRight, FileUp, FileArchive, Link2
 } from 'lucide-react';
 import { useSettings } from '../context/SettingsContext';
-import logo from '../logo.png';
+import logo from '../applogo.png';
 
 const tools = [
   { name: 'Image to PDF', icon: Image, desc: 'Convert images to PDF' },
