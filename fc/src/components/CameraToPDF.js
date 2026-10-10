@@ -6,6 +6,8 @@ import { jsPDF } from 'jspdf';
 export default function CameraToPDF() {
   const [stream, setStream] = useState(null);
   const [pages, setPages] = useState([]);
+  const [latestCapture, setLatestCapture] = useState('');
+  const [shutterActive, setShutterActive] = useState(false);
   const [error, setError] = useState('');
   const [saving, setSaving] = useState(false);
   const videoRef = useRef(null);
@@ -73,7 +75,11 @@ export default function CameraToPDF() {
     const context = canvas.getContext('2d');
     if (!context) { setError('Could not capture a camera frame.'); return; }
     context.drawImage(video, 0, 0, canvas.width, canvas.height);
-    addPage(canvas.toDataURL('image/jpeg', 0.94));
+    const capture = canvas.toDataURL('image/jpeg', 0.94);
+    addPage(capture);
+    setLatestCapture(capture);
+    setShutterActive(true);
+    window.setTimeout(() => setShutterActive(false), 220);
     setError('');
   };
 
@@ -141,14 +147,22 @@ export default function CameraToPDF() {
         <div className="grid gap-6 lg:grid-cols-[1.1fr_.9fr]">
           <div className="card-floating space-y-4 p-5 lg:p-6">
             {stream ? (
-              <div className="space-y-3">
-                <div className="relative aspect-[4/3] overflow-hidden rounded-2xl bg-gray-950">
-                  <video ref={videoRef} className="h-full w-full object-contain" playsInline muted />
-                  <div className="pointer-events-none absolute inset-5 rounded-xl border border-white/50" />
+              <div className="fixed inset-0 z-[120] flex h-[100dvh] flex-col bg-black text-white">
+                <div className="flex items-center justify-between px-5 pb-4 pt-[max(env(safe-area-inset-top),1rem)]">
+                  <div><p className="font-semibold">Camera scan</p><p className="text-xs text-white/65">Turn your device to adjust the preview</p></div>
+                  <button onClick={stopCamera} aria-label="Close camera" className="rounded-full bg-white/15 p-3 text-white hover:bg-white/25"><X className="h-5 w-5" /></button>
                 </div>
-                <div className="flex gap-3">
-                  <button onClick={capturePage} className="btn-primary flex-1 gap-2"><Camera className="h-4 w-4" /> Capture page</button>
-                  <button onClick={stopCamera} className="btn-secondary gap-2"><X className="h-4 w-4" /> Done</button>
+                <div className="relative min-h-0 flex-1 overflow-hidden">
+                  <video ref={videoRef} className="absolute inset-0 h-full w-full object-contain" playsInline muted />
+                  {shutterActive && <div className="camera-shutter-flash" aria-hidden="true" />}
+                  <div className="pointer-events-none absolute inset-[8%] rounded-2xl border border-white/50" />
+                  {latestCapture && <div className="absolute bottom-4 right-4 z-10 w-20 overflow-hidden rounded-xl border-2 border-white/80 bg-black/70 shadow-xl sm:w-24">
+                    <img src={latestCapture} alt="Most recently captured page" className="aspect-[3/4] w-full object-cover" />
+                    <span className="block px-1.5 py-1 text-center text-[10px] font-medium">Latest · {pages.length}</span>
+                  </div>}
+                </div>
+                <div className="flex justify-center px-5 pb-[max(env(safe-area-inset-bottom),1.5rem)] pt-5">
+                  <button onClick={capturePage} className="flex min-h-14 min-w-56 items-center justify-center gap-2 rounded-full bg-gradient-to-r from-brand-500 to-violet-600 px-8 font-semibold text-white shadow-xl shadow-black/30 active:scale-95"><Camera className="h-5 w-5" /> Capture page</button>
                 </div>
               </div>
             ) : (

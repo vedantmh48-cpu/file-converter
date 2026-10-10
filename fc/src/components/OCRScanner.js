@@ -1,4 +1,5 @@
 import React, { useState, useRef, useCallback, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   Camera, ScanText, FileDown, FileText,
@@ -36,6 +37,8 @@ export default function OCRScanner() {
   const [dragActive, setDragActive] = useState(false);
   const [cameraActive, setCameraActive] = useState(false);
   const [cameraError, setCameraError] = useState('');
+  const [latestCapture, setLatestCapture] = useState('');
+  const [shutterActive, setShutterActive] = useState(false);
 
   const fileInputRef = useRef(null);
   const videoRef = useRef(null);
@@ -113,8 +116,14 @@ export default function OCRScanner() {
         setCameraError('Could not capture the image. Please try again.');
         return;
       }
-      stopCamera();
-      loadImageFile(new File([blob], 'camera-capture.jpg', { type: 'image/jpeg' }));
+      const preview = canvas.toDataURL('image/jpeg', 0.94);
+      setLatestCapture(preview);
+      setShutterActive(true);
+      window.setTimeout(() => {
+        setShutterActive(false);
+        stopCamera();
+        loadImageFile(new File([blob], 'camera-capture.jpg', { type: 'image/jpeg' }));
+      }, 220);
     }, 'image/jpeg', 0.94);
   };
 
@@ -256,18 +265,26 @@ export default function OCRScanner() {
           {/* IDLE */}
           {step === STEP.IDLE && (
             <div className="space-y-4">
-              {cameraActive ? (
-                <div className="space-y-3">
-                  <div className="relative aspect-video overflow-hidden rounded-2xl bg-black">
-                    <video ref={videoRef} className="h-full w-full object-contain" playsInline muted />
-                    <div className="pointer-events-none absolute inset-6 rounded-xl border-2 border-white/60" />
+              {cameraActive ? createPortal((
+                <div className="fixed inset-0 z-[120] flex h-[100dvh] flex-col bg-black text-white">
+                  <div className="flex items-center justify-between px-5 pb-4 pt-[max(env(safe-area-inset-top),1rem)]">
+                    <div><p className="font-semibold">Text capture</p><p className="text-xs text-white/65">Turn your device to adjust the preview</p></div>
+                    <button onClick={stopCamera} aria-label="Close camera" className="rounded-full bg-white/15 p-3 text-white hover:bg-white/25"><X className="h-5 w-5" /></button>
                   </div>
-                  <div className="flex gap-3">
-                    <button onClick={captureFromCamera} className="btn-primary flex-1 gap-2"><Camera className="h-4 w-4" /> Capture for text</button>
-                    <button onClick={stopCamera} className="btn-secondary gap-2"><X className="h-4 w-4" /> Cancel</button>
+                  <div className="relative min-h-0 flex-1 overflow-hidden">
+                    <video ref={videoRef} className="absolute inset-0 h-full w-full object-contain" playsInline muted />
+                    {shutterActive && <div className="camera-shutter-flash" aria-hidden="true" />}
+                    <div className="pointer-events-none absolute inset-[8%] rounded-2xl border border-white/50" />
+                    {latestCapture && <div className="absolute bottom-4 right-4 z-10 w-20 overflow-hidden rounded-xl border-2 border-white/80 bg-black/70 shadow-xl sm:w-24">
+                      <img src={latestCapture} alt="Captured text source" className="aspect-[3/4] w-full object-cover" />
+                      <span className="block px-1.5 py-1 text-center text-[10px] font-medium">Captured</span>
+                    </div>}
+                  </div>
+                  <div className="flex justify-center px-5 pb-[max(env(safe-area-inset-bottom),1.5rem)] pt-5">
+                    <button onClick={captureFromCamera} className="flex min-h-14 min-w-56 items-center justify-center gap-2 rounded-full bg-gradient-to-r from-brand-500 to-violet-600 px-8 font-semibold text-white shadow-xl shadow-black/30 active:scale-95"><Camera className="h-5 w-5" /> Capture for text</button>
                   </div>
                 </div>
-              ) : <>
+              ), document.body) : <>
                   <div
                     onDragEnter={handleDrag}
                     onDragLeave={handleDrag}

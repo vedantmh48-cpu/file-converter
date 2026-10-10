@@ -2,6 +2,21 @@
 @tailwind components;
 @tailwind utilities;
 
+@keyframes camera-shutter-flash {
+  0% { opacity: 0; }
+  18% { opacity: 0.9; }
+  100% { opacity: 0; }
+}
+
+.camera-shutter-flash {
+  position: absolute;
+  inset: 0;
+  z-index: 5;
+  background: white;
+  pointer-events: none;
+  animation: camera-shutter-flash 220ms ease-out both;
+}
+
 @layer base {
   :root {
     --surface: #ffffff;

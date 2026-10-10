@@ -1,6 +1,6 @@
 import React from 'react';
 import { motion } from 'framer-motion';
-import { ArrowRight, Shield, Zap, FileBox, Sparkles } from 'lucide-react';
+import { ArrowRight, Shield, Zap, FileBox } from 'lucide-react';
 
 const container = {
   hidden: {},
@@ -34,22 +34,14 @@ export default function Hero({ onNavigate }) {
         <div className="grid lg:grid-cols-2 gap-14 lg:gap-16 items-center">
           {/* Left Content */}
           <motion.div variants={container} initial="hidden" animate="show" className="text-center lg:text-left">
-            <motion.div variants={item}>
-              <span className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-brand-50/80 dark:bg-brand-500/10 border border-brand-200/60 dark:border-brand-500/30 text-brand-700 dark:text-brand-300 text-sm font-medium">
-                <Sparkles className="w-4 h-4" />
-                100% Free & Client-Side
-              </span>
-            </motion.div>
-
             <motion.h1
               variants={item}
-              className="mt-6 text-[2.75rem] leading-[1.05] sm:text-6xl lg:text-[4.25rem] font-extrabold text-gray-900 dark:text-gray-50"
+              className="mt-0 text-[2.75rem] leading-[1.05] sm:text-6xl lg:text-[4.25rem] font-extrabold text-gray-900 dark:text-gray-50"
             >
               Convert files{' '}
               <span className="animated-gradient-text bg-gradient-to-r from-brand-600 via-violet-600 to-brand-500 dark:from-brand-400 dark:via-violet-400 dark:to-brand-300 bg-clip-text text-transparent">
                 beautifully
               </span>{' '}
-              in your browser
             </motion.h1>
 
             <motion.p
