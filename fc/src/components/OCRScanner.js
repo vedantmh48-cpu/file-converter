@@ -33,19 +33,17 @@ export default function OCRScanner() {
   const [copied, setCopied] = useState(false);
   const [exporting, setExporting] = useState(null);
   const [exportSuccess, setExportSuccess] = useState(null);
-  const [cameraActive, setCameraActive] = useState(false);
-  const [cameraError, setCameraError] = useState(null);
   const [dragActive, setDragActive] = useState(false);
+  const [cameraActive, setCameraActive] = useState(false);
+  const [cameraError, setCameraError] = useState('');
 
   const fileInputRef = useRef(null);
   const videoRef = useRef(null);
   const streamRef = useRef(null);
 
   const stopCamera = useCallback(() => {
-    if (streamRef.current) {
-      streamRef.current.getTracks().forEach((t) => t.stop());
-      streamRef.current = null;
-    }
+    streamRef.current?.getTracks().forEach((track) => track.stop());
+    streamRef.current = null;
     setCameraActive(false);
   }, []);
 
@@ -53,43 +51,71 @@ export default function OCRScanner() {
   useEffect(() => {
     return () => {
       terminateOCRWorker();
-      if (streamRef.current) {
-        streamRef.current.getTracks().forEach((t) => t.stop());
-      }
+      streamRef.current?.getTracks().forEach((track) => track.stop());
     };
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
-  // ── Camera ──────────────────────────────────────────────────────────────────
+  useEffect(() => {
+    if (!cameraActive || !videoRef.current || !streamRef.current) return undefined;
+    const video = videoRef.current;
+    video.srcObject = streamRef.current;
+    video.play().catch(() => setCameraError('Could not start the preview. Check camera permissions and try again.'));
+    return () => { video.srcObject = null; };
+  }, [cameraActive]);
 
   const startCamera = async () => {
-    setCameraError(null);
+    setCameraError('');
+    if (!navigator.mediaDevices?.getUserMedia) {
+      setCameraError('Camera access requires HTTPS (or localhost) and a supported browser.');
+      return;
+    }
     try {
-      const stream = await navigator.mediaDevices.getUserMedia({
-        video: { facingMode: 'environment', width: { ideal: 1920 }, height: { ideal: 1080 } },
-      });
-      streamRef.current = stream;
-      if (videoRef.current) {
-        videoRef.current.srcObject = stream;
-        videoRef.current.play();
+      let stream;
+      try {
+        stream = await navigator.mediaDevices.getUserMedia({
+          audio: false,
+          video: { facingMode: { ideal: 'environment' }, width: { ideal: 1920 }, height: { ideal: 1080 } },
+        });
+      } catch (err) {
+        if (err.name !== 'OverconstrainedError' && err.name !== 'NotFoundError') throw err;
+        stream = await navigator.mediaDevices.getUserMedia({ audio: false, video: true });
       }
+      streamRef.current = stream;
       setCameraActive(true);
-    } catch {
-      setCameraError('Camera access denied or not available on this device.');
+    } catch (err) {
+      const messages = {
+        NotAllowedError: 'Camera permission was denied. Allow access in your browser settings and try again.',
+        NotFoundError: 'No camera was found on this device.',
+        NotReadableError: 'The camera is already in use by another app.',
+        SecurityError: 'Camera access requires HTTPS or localhost.',
+      };
+      setCameraError(messages[err.name] || 'Camera could not be opened. Check permissions and try again.');
     }
   };
 
   const captureFromCamera = () => {
-    if (!videoRef.current) return;
     const video = videoRef.current;
+    if (!video || video.readyState < 2 || !video.videoWidth || !video.videoHeight) {
+      setCameraError('Camera is still focusing. Wait for the preview, then capture again.');
+      return;
+    }
     const canvas = document.createElement('canvas');
     canvas.width = video.videoWidth;
     canvas.height = video.videoHeight;
-    canvas.getContext('2d').drawImage(video, 0, 0);
+    const context = canvas.getContext('2d');
+    if (!context) {
+      setCameraError('Could not capture a camera frame.');
+      return;
+    }
+    context.drawImage(video, 0, 0, canvas.width, canvas.height);
     canvas.toBlob((blob) => {
-      const file = new File([blob], 'camera-capture.jpg', { type: 'image/jpeg' });
+      if (!blob) {
+        setCameraError('Could not capture the image. Please try again.');
+        return;
+      }
       stopCamera();
-      loadImageFile(file);
-    }, 'image/jpeg', 0.95);
+      loadImageFile(new File([blob], 'camera-capture.jpg', { type: 'image/jpeg' }));
+    }, 'image/jpeg', 0.94);
   };
 
   // ── File Loading ─────────────────────────────────────────────────────────────
@@ -214,7 +240,7 @@ export default function OCRScanner() {
               Scan &amp; Extract Text from Images
             </h2>
             <p className="mt-3 text-gray-500 dark:text-gray-400 text-lg max-w-xl mx-auto">
-              Capture or upload any document image. OCR extracts the text — export to PDF or Word.
+              Upload a document image. OCR extracts the text — export to PDF or Word.
               100% client-side, nothing leaves your device.
             </p>
           </motion.div>
@@ -232,29 +258,16 @@ export default function OCRScanner() {
             <div className="space-y-4">
               {cameraActive ? (
                 <div className="space-y-3">
-                  <div className="relative rounded-2xl overflow-hidden bg-black aspect-video">
-                    <video ref={videoRef} className="w-full h-full object-cover" playsInline muted />
-                    <div className="absolute inset-6 border-2 border-white/60 rounded-xl pointer-events-none">
-                      <div className="absolute top-0 left-0 w-6 h-6 border-t-4 border-l-4 border-brand-400 rounded-tl-lg" />
-                      <div className="absolute top-0 right-0 w-6 h-6 border-t-4 border-r-4 border-brand-400 rounded-tr-lg" />
-                      <div className="absolute bottom-0 left-0 w-6 h-6 border-b-4 border-l-4 border-brand-400 rounded-bl-lg" />
-                      <div className="absolute bottom-0 right-0 w-6 h-6 border-b-4 border-r-4 border-brand-400 rounded-br-lg" />
-                    </div>
-                    <p className="absolute bottom-3 left-0 right-0 text-center text-white/80 text-xs">
-                      Align document within the frame
-                    </p>
+                  <div className="relative aspect-video overflow-hidden rounded-2xl bg-black">
+                    <video ref={videoRef} className="h-full w-full object-contain" playsInline muted />
+                    <div className="pointer-events-none absolute inset-6 rounded-xl border-2 border-white/60" />
                   </div>
                   <div className="flex gap-3">
-                    <button onClick={captureFromCamera} className="btn-primary flex-1 gap-2">
-                      <Camera className="w-4 h-4" /> Capture
-                    </button>
-                    <button onClick={stopCamera} className="btn-secondary gap-2">
-                      <X className="w-4 h-4" /> Cancel
-                    </button>
+                    <button onClick={captureFromCamera} className="btn-primary flex-1 gap-2"><Camera className="h-4 w-4" /> Capture for text</button>
+                    <button onClick={stopCamera} className="btn-secondary gap-2"><X className="h-4 w-4" /> Cancel</button>
                   </div>
                 </div>
-              ) : (
-                <>
+              ) : <>
                   <div
                     onDragEnter={handleDrag}
                     onDragLeave={handleDrag}
@@ -277,21 +290,14 @@ export default function OCRScanner() {
                       <p className="text-xs text-gray-400">JPG, PNG, WEBP, BMP, TIFF — best with clear, well-lit images</p>
                     </div>
                   </div>
-                  <div className="flex items-center gap-3">
-                    <div className="flex-1 h-px bg-gray-200 dark:bg-gray-700" />
-                    <span className="text-xs text-gray-400">or</span>
-                    <div className="flex-1 h-px bg-gray-200 dark:bg-gray-700" />
-                  </div>
-                  <button onClick={startCamera} className="btn-secondary w-full gap-2">
-                    <Camera className="w-4 h-4" /> Use Camera
-                  </button>
-                  {cameraError && (
-                    <p className="text-sm text-red-500 flex items-center gap-1.5">
-                      <AlertTriangle className="w-4 h-4 flex-shrink-0" /> {cameraError}
-                    </p>
-                  )}
-                </>
-              )}
+              <div className="flex items-center gap-3">
+                <div className="h-px flex-1 bg-gray-200 dark:bg-gray-700" />
+                <span className="text-xs text-gray-400">or capture</span>
+                <div className="h-px flex-1 bg-gray-200 dark:bg-gray-700" />
+              </div>
+              <button onClick={startCamera} className="btn-secondary w-full gap-2"><Camera className="h-4 w-4" /> Use camera to extract text</button>
+              {cameraError && <p role="alert" className="text-sm text-red-500">{cameraError}</p>}
+              </>}
             </div>
           )}
 

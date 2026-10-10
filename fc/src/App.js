@@ -7,6 +7,7 @@ import HowItWorks from './components/HowItWorks';
 import Features from './components/Features';
 import ExtraTools from './components/ExtraTools';
 import OCRScanner from './components/OCRScanner';
+import CameraToPDF from './components/CameraToPDF';
 import PageLoader from './components/PageLoader';
 import CookieConsent from './components/CookieConsent';
 import LegalModal from './components/LegalModal';
@@ -15,7 +16,7 @@ import BottomNav from './components/BottomNav';
 import { useSettings } from './context/SettingsContext';
 import ErrorBoundary from './components/ErrorBoundary';
 
-const SECTIONS = ['home', 'converter', 'ocr-scanner', 'how-it-works', 'features', 'extra-tools'];
+const SECTIONS = ['home', 'converter', 'camera-to-pdf', 'ocr-scanner', 'how-it-works', 'features', 'extra-tools'];
 
 function AppContent() {
   const { settings } = useSettings();
@@ -74,6 +75,7 @@ function AppContent() {
             <main className="min-h-screen pb-[calc(6.5rem+env(safe-area-inset-bottom))] lg:pb-0">
               <Hero onNavigate={scrollToSection} />
               <Converter />
+              <CameraToPDF />
               <OCRScanner />
               <HowItWorks />
               <Features />

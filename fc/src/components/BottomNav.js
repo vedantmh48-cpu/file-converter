@@ -1,9 +1,10 @@
 import { motion, AnimatePresence } from 'framer-motion';
-import { Home, RefreshCw, Wrench, Settings } from 'lucide-react';
+import { Home, RefreshCw, Wrench, Settings, Camera } from 'lucide-react';
 
 const NAV_ITEMS = [
   { id: 'home', label: 'Home', icon: Home },
   { id: 'converter', label: 'Convert', icon: RefreshCw },
+  { id: 'camera-to-pdf', label: 'Scan', icon: Camera, featured: true },
   { id: 'extra-tools', label: 'Tools', icon: Wrench },
   { id: 'settings', label: 'Settings', icon: Settings, isSettings: true },
 ];
@@ -35,7 +36,7 @@ export default function BottomNav({ active, onNavigate, onOpenSettings }) {
                 <button
                   key={item.id}
                   onClick={() => handleClick(item)}
-                  className="relative flex flex-1 flex-col items-center gap-1 py-1.5 rounded-full overflow-visible"
+                  className={`relative flex flex-1 flex-col items-center gap-1 py-1.5 rounded-full overflow-visible ${item.featured ? '-mt-7' : ''}`}
                   aria-label={item.label}
                   aria-current={isActive ? 'page' : undefined}
                 >
@@ -56,8 +57,9 @@ export default function BottomNav({ active, onNavigate, onOpenSettings }) {
                         : { scale: 1, y: 0 }
                     }
                     transition={{ type: 'spring', stiffness: 500, damping: 24 }}
-                    className={`relative z-10 mt-0.5 ${
-                      isActive
+                    className={`relative z-10 mt-0.5 ${item.featured
+                      ? 'flex h-14 w-14 items-center justify-center rounded-full border-4 border-white bg-gradient-to-br from-brand-500 to-violet-600 text-white shadow-xl shadow-brand-900/25 dark:border-gray-900'
+                      : isActive
                         ? 'text-brand-600 drop-shadow-[0_0_8px_rgba(99,102,241,0.6)] dark:text-brand-400'
                         : 'text-gray-400 dark:text-gray-500'
                     }`}

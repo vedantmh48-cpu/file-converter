@@ -3,12 +3,14 @@ import { motion, AnimatePresence } from 'framer-motion';
 import {
   ChevronDown, Settings, Sun, Moon,
   Image, FileImage, FileType,
-  ArrowRight, FileUp, FileArchive, Link2
+  ArrowRight, FileUp, FileArchive, Link2, Camera, ScanText
 } from 'lucide-react';
 import { useSettings } from '../context/SettingsContext';
 import logo from '../applogo.png';
 
 const tools = [
+  { name: 'Camera to PDF', icon: Camera, desc: 'Scan pages and create a PDF' },
+  { name: 'Text Extractor', icon: ScanText, desc: 'Extract text from images' },
   { name: 'Image to PDF', icon: Image, desc: 'Convert images to PDF' },
   { name: 'Convert to JPG', icon: FileImage, desc: 'Convert any image to JPG' },
   { name: 'Convert to PNG', icon: FileImage, desc: 'Convert any image to PNG' },
@@ -39,7 +41,10 @@ export default function Navbar({ active, onNavigate, onOpenSettings }) {
   };
 
   const scrollToTool = (toolName) => {
-    onNavigate(['File Compressor', 'File to Link'].includes(toolName) ? 'extra-tools' : 'converter');
+    const section = toolName === 'Camera to PDF' ? 'camera-to-pdf'
+      : toolName === 'Text Extractor' ? 'ocr-scanner'
+        : ['File Compressor', 'File to Link'].includes(toolName) ? 'extra-tools' : 'converter';
+    onNavigate(section);
     setToolsOpen(false);
   };
 
